@@ -1,0 +1,102 @@
+apply plugin: 'net.corda.plugins.cordapp'
+apply plugin: 'net.corda.plugins.cordformation'
+apply plugin: 'net.corda.plugins.quasar-utils'
+
+cordapp {
+    targetPlatformVersion corda_platform_version.toInteger()
+    minimumPlatformVersion corda_platform_version.toInteger()
+    workflow {
+        name "Temperature Flows"
+        vendor "Corda Open Source"
+        licence "Apache License, Version 2.0"
+        versionId 1
+    }
+}
+
+sourceSets {
+    main {
+        java {
+            srcDir 'src/main/java'
+            outputDir = file('bin/main')
+        }
+        resources {
+            srcDir rootProject.file("config/dev")
+        }
+    }
+    test {
+        java {
+            srcDir 'src/test/java'
+            outputDir = file('bin/test')
+        }
+    }
+    integrationTest {
+        java {
+            compileClasspath += main.output + test.output
+            runtimeClasspath += main.output + test.output
+            srcDir file('src/integrationTest/java')
+        }
+    }
+}
+
+configurations {
+    integrationTestImplementation.extendsFrom testImplementation
+    integrationTestRuntimeOnly.extendsFrom testRuntimeOnly
+}
+
+dependencies {
+    // Corda核心依赖
+    cordaProvided "$corda_core_release_group:corda-core:$corda_core_release_version"
+    cordaProvided "$corda_release_group:corda-node-api:$corda_release_version"
+
+    // 基础依赖
+    cordaProvided "org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlin_version"
+    cordaProvided 'com.google.guava:guava:23.0'
+
+    // CorDapp依赖
+    cordapp project(":contracts")
+
+    // 测试依赖
+    testImplementation "junit:junit:$junit_version"
+    testImplementation "$corda_release_group:corda-node-driver:$corda_release_version"
+    testImplementation "$corda_core_release_group:corda-core-test-utils:$corda_core_release_version"
+}
+
+quasar {
+    excludePackages.addAll(
+            "antlr**",
+            "javax**",
+            "com.codahale**",
+            "com.fasterxml.**",
+            "com.github.benmanes.caffeine.**",
+            "com.google.**",
+            "com.lmax.**",
+            "com.zaxxer.**",
+            "net.bytebuddy**",
+            "io.github.classgraph**",
+            "io.netty*",
+            "liquibase**",
+            "net.i2p.crypto.**",
+            "nonapi.io.github.classgraph.**",
+            "org.apiguardian.**",
+            "org.bouncycastle**",
+            "org.codehaus.**",
+            "org.h2**",
+            "org.hibernate**",
+            "org.jboss.**",
+            "org.objenesis**",
+            "org.w3c.**",
+            "org.xml**",
+            "org.yaml**",
+            "kotlin**",
+            "rx**"
+    )
+}
+
+task integrationTest(type: Test) {
+    testClassesDirs = sourceSets.integrationTest.output.classesDirs
+    classpath = sourceSets.integrationTest.runtimeClasspath
+}
+
+test {
+    jvmArgs = rootProject.ext.testJvmArgs
+}

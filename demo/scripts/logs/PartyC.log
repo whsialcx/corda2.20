@@ -1,0 +1,30 @@
+Starting a Gradle Daemon, 3 busy and 2 incompatible and 3 stopped Daemons could not be reused, use --status for details
+> Task :contracts:compileJava UP-TO-DATE
+> Task :workflows:compileJava UP-TO-DATE
+> Task :clients:compileJava UP-TO-DATE
+> Task :clients:processResources UP-TO-DATE
+> Task :clients:classes UP-TO-DATE
+> Task :clients:resolveMainClassName UP-TO-DATE
+> Task :contracts:processResources NO-SOURCE
+> Task :contracts:classes UP-TO-DATE
+> Task :contracts:configureCordappFatJar
+> Task :contracts:jar UP-TO-DATE
+> Task :workflows:processResources UP-TO-DATE
+> Task :workflows:classes UP-TO-DATE
+> Task :workflows:configureCordappFatJar
+> Task :workflows:jar UP-TO-DATE
+> Task :clients:bootJar UP-TO-DATE
+> Task :clients:jar UP-TO-DATE
+> Task :clients:assemble UP-TO-DATE
+
+> Task :clients:runPartyCServer
+I 15:56:10 1 Starter.logStarting - Starting Starter using Java 17.0.14 with PID 30716 (E:\springBoot\demo\scripts\clients\build\classes\java\main started by Administrator in E:\springBoot\demo\scripts\clients)
+I 15:56:10 1 Starter.logStartupProfileInfo - No active profile set, falling back to 1 default profile: "default"
+I 15:56:12 1 TomcatWebServer.initialize - Tomcat initialized with port 50008 (http)
+I 15:56:12 1 ServletWebServerApplicationContext.prepareWebApplicationContext - Root WebApplicationContext: initialization completed in 2034 ms
+I 15:56:17 1 RPCClient.logElapsedTime - Startup took 1555 msec
+I 15:56:18 1 WelcomePageHandlerMapping.<init> - Adding welcome page: class path resource [static/index.html]
+I 15:56:19 1 TomcatWebServer.start - Tomcat started on port 50008 (http) with context path ''
+I 15:56:19 1 Starter.logStarted - Started Starter in 9.505 seconds (process running for 10.791)
+I 15:56:20 139 DispatcherServlet.initServletBean - Initializing Servlet 'dispatcherServlet'
+I 15:56:20 139 DispatcherServlet.initServletBean - Completed initialization in 2 ms

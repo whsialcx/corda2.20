@@ -1,0 +1,3 @@
+-- INSERT INTO users (username, password, email, full_name, role) 
+-- VALUES ('admin', '$2a$10$N.zmdr9k7uOCQb376NoUnuTJ8iAt6Z5EHsM8lE9lBOsl7iKTVwUi.', 'admin@corda-manager.com', '系统管理员', 'ADMIN')
+-- ON CONFLICT (username) DO NOTHING;

@@ -1,0 +1,851 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Corda节点管理面板</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background-color: #f5f7fa;
+            color: #333;
+            line-height: 1.6;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        
+        header {
+            background: linear-gradient(135deg, #2c3e50 0%, #3498db 100%);
+            color: white;
+            padding: 25px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+        
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+        
+        .subtitle {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+        
+        .dashboard {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 25px;
+            margin-bottom: 30px;
+        }
+        
+        .card {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.08);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.12);
+        }
+        
+        .card h2 {
+            color: #2c3e50;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #f0f0f0;
+            font-size: 1.4rem;
+        }
+        
+        .node-badges {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        
+        .node-badge {
+            background: #3498db;
+            color: white;
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: background 0.3s ease;
+        }
+        
+        .node-badge:hover {
+            background: #2980b9;
+        }
+        
+        .node-badge.active {
+            background: #2ecc71;
+        }
+        
+        .form-group {
+            margin-bottom: 15px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: #444;
+        }
+        
+        input, select, textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 1rem;
+        }
+        
+        button {
+            background: #3498db;
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 600;
+            transition: background 0.3s ease;
+            width: 100%;
+        }
+        
+        button:hover {
+            background: #2980b9;
+        }
+        
+        .btn-success {
+            background: #2ecc71;
+        }
+        
+        .btn-success:hover {
+            background: #27ae60;
+        }
+        
+        .btn-danger {
+            background: #e74c3c;
+        }
+        
+        .btn-danger:hover {
+            background: #c0392b;
+        }
+        
+        .btn-small {
+            padding: 8px 15px;
+            font-size: 0.9rem;
+            width: auto;
+            margin-right: 10px;
+            margin-bottom: 10px;
+        }
+        
+        .results {
+            background: white;
+            border-radius: 10px;
+            padding: 25px;
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.08);
+            margin-top: 30px;
+        }
+        
+        .results h2 {
+            color: #2c3e50;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+        
+        .response-area {
+            background: #f8f9fa;
+            border: 1px solid #eaeaea;
+            border-radius: 5px;
+            padding: 15px;
+            max-height: 500px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+        
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+        
+        .status-connected {
+            background-color: #2ecc71;
+        }
+        
+        .status-error {
+            background-color: #e74c3c;
+        }
+        
+        .action-buttons {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        
+        .log-entry {
+            background: #f8f9fa;
+            border-left: 4px solid #3498db;
+            padding: 10px;
+            margin-bottom: 10px;
+            border-radius: 0 5px 5px 0;
+        }
+        
+        .log-time {
+            color: #7f8c8d;
+            font-size: 0.85rem;
+            margin-bottom: 5px;
+        }
+        
+        .log-message {
+            font-size: 0.95rem;
+        }
+        
+        .log-error {
+            border-left-color: #e74c3c;
+            background-color: #ffeaea;
+        }
+        
+        .log-success {
+            border-left-color: #2ecc71;
+            background-color: #eaffea;
+        }
+        
+        .flex-row {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+        
+        .flex-row > * {
+            flex: 1;
+        }
+        
+        footer {
+            text-align: center;
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 1px solid #eee;
+            color: #7f8c8d;
+            font-size: 0.9rem;
+        }
+        
+        @media (max-width: 768px) {
+            .dashboard {
+                grid-template-columns: 1fr;
+            }
+            
+            .flex-row {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Corda节点管理面板</h1>
+            <p class="subtitle">连接到Spring Boot后端API，管理多个Corda节点</p>
+            <div class="node-badges" id="nodeBadges">
+                <!-- 节点标签将由JavaScript动态生成 -->
+            </div>
+        </header>
+        
+        <div class="dashboard">
+            <!-- 节点连接测试 -->
+            <div class="card">
+                <h2>节点连接测试</h2>
+                <p>测试所有节点的连接状态</p>
+                <div class="form-group">
+                    <button id="testAllNodes" class="btn-success">测试所有节点</button>
+                </div>
+                <div class="form-group">
+                    <button id="checkNodeHealth" class="btn-small">检查节点健康状态</button>
+                    <button id="getAllReceivers" class="btn-small">获取所有接收方</button>
+                </div>
+            </div>
+            
+            <!-- 节点信息查询 -->
+            <div class="card">
+                <h2>节点信息查询</h2>
+                <p>查询选定节点的详细信息</p>
+                <div class="form-group">
+                    <label for="nodeSelect">选择节点:</label>
+                    <select id="nodeSelect">
+                        <!-- 动态生成选项 -->
+                    </select>
+                </div>
+                <div class="action-buttons">
+                    <button id="getNodeInfo" class="btn-small">获取节点信息</button>
+                    <button id="getNodeStatus" class="btn-small">获取状态</button>
+                    <button id="getNodePeers" class="btn-small">获取对等节点</button>
+                </div>
+            </div>
+            
+            <!-- IOU操作 -->
+            <div class="card">
+                <h2>IOU操作</h2>
+                <p>创建和查询IOU（借据）</p>
+                <div class="form-group">
+                    <label for="iouValue">IOU金额:</label>
+                    <input type="number" id="iouValue" placeholder="输入金额" value="100">
+                </div>
+                <div class="form-group">
+                    <label for="iouPartyName">对方节点名称:</label>
+                    <input type="text" id="iouPartyName" placeholder="例如: O=PartyB,L=New York,C=US" value="O=PartyB,L=New York,C=US">
+                </div>
+                <div class="action-buttons">
+                    <button id="createIOU" class="btn-small btn-success">创建IOU</button>
+                    <button id="getIOUs" class="btn-small">查询IOU列表</button>
+                    <button id="getMyIOUs" class="btn-small">查询我的IOU</button>
+                </div>
+            </div>
+            
+            <!-- 温度记录操作 -->
+            <div class="card">
+                <h2>温度记录操作</h2>
+                <p>记录和查询温度数据</p>
+                <div class="flex-row">
+                    <div class="form-group">
+                        <label for="temperature">温度值:</label>
+                        <input type="number" id="temperature" placeholder="摄氏度" value="36.5">
+                    </div>
+                    <div class="form-group">
+                        <label for="isCritical">是否危急:</label>
+                        <select id="isCritical">
+                            <option value="false">否</option>
+                            <option value="true">是</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="temperatureReceiver">接收方(若要实现温度记录直接输入名称即可(PartyA)):</label>
+                    <input type="text" id="temperatureReceiver" placeholder="节点名称" value="O=PartyB,L=New York,C=US">
+                </div>
+                <div class="action-buttons">
+                    <button id="recordTemperature" class="btn-small btn-success">记录温度</button>
+                    <button id="queryTemperatures" class="btn-small">查询温度记录</button>
+                    <button id="getReceivers" class="btn-small">获取接收方列表</button>
+                </div>
+            </div>
+            
+            <!-- 其他操作 -->
+            <div class="card">
+                <h2>其他操作</h2>
+                <p>其他Corda节点功能</p>
+                <div class="action-buttons">
+                    <button id="getServerTime" class="btn-small">获取服务器时间</button>
+                    <button id="getNotaries" class="btn-small">获取公证人</button>
+                    <button id="getFlows" class="btn-small">获取流程</button>
+                    <button id="getStates" class="btn-small">获取状态</button>
+                    <button id="getAddresses" class="btn-small">获取地址</button>
+                    <button id="getPlatformVersion" class="btn-small">获取平台版本</button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 操作日志 -->
+        <div class="card">
+            <h2>操作日志</h2>
+            <div id="logContainer" style="max-height: 300px; overflow-y: auto;">
+                <!-- 日志条目将在这里动态添加 -->
+            </div>
+            <div style="margin-top: 15px;">
+                <button id="clearLogs" class="btn-small btn-danger">清空日志</button>
+            </div>
+        </div>
+        
+        <!-- 响应结果 -->
+        <div class="results">
+            <h2>API响应结果</h2>
+            <div class="response-area" id="responseArea">
+                // 响应结果将显示在这里
+            </div>
+        </div>
+        
+        <footer>
+            <p>Corda节点管理面板 &copy; 2023 | 后端API地址: http://localhost:8080</p>
+            <p>当前选中的节点: <span id="currentNodeDisplay">--</span></p>
+        </footer>
+    </div>
+
+    <script>
+        // 后端API基础URL
+        const API_BASE_URL = 'http://localhost:8080/api/corda';
+        let currentNode = null; // 当前选中的节点ID (组织名，如 PartyA)
+        let nodesList = []; // 存储从数据库获取的节点 { nodeName, baseUrl, shortName }
+        
+        // DOM元素
+        const nodeBadges = document.getElementById('nodeBadges');
+        const nodeSelect = document.getElementById('nodeSelect');
+        const responseArea = document.getElementById('responseArea');
+        const logContainer = document.getElementById('logContainer');
+        const currentNodeDisplay = document.getElementById('currentNodeDisplay');
+        
+        // 从节点管理数据库加载节点列表
+        async function loadNodesFromDatabase() {
+            try {
+                const response = await fetch('/api/nodes/list');
+                const data = await response.json();
+                
+                // 【核心修复点】: 优先使用 data.nodeDetails，并读取 node.name
+                if (data.success && data.nodeDetails && data.nodeDetails.length > 0) {
+                    nodesList = data.nodeDetails.map(node => {
+                        const realName = node.name || node.nodeName || String(node);
+                        const shortName = extractShortName(realName);
+                        return {
+                            nodeName: realName,
+                            baseUrl: node.baseUrl || '未知',
+                            shortName: shortName
+                        };
+                    });
+                } else if (data.success && data.nodes && data.nodes.length > 0) {
+                    // 兼容旧的单纯字符串数组格式
+                    nodesList = data.nodes.map(nodeStr => {
+                        return {
+                            nodeName: nodeStr,
+                            baseUrl: '未知',
+                            shortName: extractShortName(nodeStr)
+                        };
+                    });
+                } else {
+                    // 如果没有节点，使用默认节点作为后备
+                    nodesList = [
+                        { nodeName: 'O=PartyA,L=London,C=GB', baseUrl: 'http://localhost:50005', shortName: 'PartyA' },
+                        { nodeName: 'O=PartyB,L=New York,C=US', baseUrl: 'http://localhost:50006', shortName: 'PartyB' },
+                        { nodeName: 'O=PartyC,L=Paris,C=FR', baseUrl: 'http://localhost:50008', shortName: 'PartyC' },
+                        { nodeName: 'O=PartyE,L=Tokyo,C=JP', baseUrl: 'http://localhost:50009', shortName: 'PartyE' }
+                    ];
+                    addLog('使用默认节点列表（数据库无节点）', 'warn');
+                }
+            } catch (error) {
+                addLog('加载节点列表失败: ' + error.message, 'error');
+                // 加载失败时使用默认节点
+                nodesList = [
+                    { nodeName: 'O=PartyA,L=London,C=GB', baseUrl: 'http://localhost:50005', shortName: 'PartyA' },
+                    { nodeName: 'O=PartyB,L=New York,C=US', baseUrl: 'http://localhost:50006', shortName: 'PartyB' }
+                ];
+            }
+            // 初始化节点标签和选择框
+            initNodeBadges();
+            initNodeSelect();
+            // 默认选中第一个节点
+            if (nodesList.length > 0) {
+                selectNode(nodesList[0].shortName);
+            }
+        }
+        
+        // 从 X.500 名称中提取组织名
+        function extractShortName(nodeName) {
+            const match = nodeName.match(/O=([^,]+)/);
+            return match ? match[1] : nodeName;
+        }
+        
+        // 初始化节点标签
+        function initNodeBadges() {
+            nodeBadges.innerHTML = '';
+            nodesList.forEach(node => {
+                const badge = document.createElement('div');
+                badge.className = `node-badge ${node.shortName === currentNode ? 'active' : ''}`;
+                badge.textContent = node.shortName;
+                badge.dataset.node = node.shortName;
+                badge.addEventListener('click', () => selectNode(node.shortName));
+                nodeBadges.appendChild(badge);
+            });
+        }
+        
+        // 初始化节点下拉选择框
+        function initNodeSelect() {
+            nodeSelect.innerHTML = '';
+            nodesList.forEach(node => {
+                const option = document.createElement('option');
+                option.value = node.shortName;
+                option.textContent = `${node.shortName} (${node.baseUrl})`;
+                nodeSelect.appendChild(option);
+            });
+        }
+        
+        // 选择节点
+        function selectNode(nodeId) {
+            currentNode = nodeId;
+            nodeSelect.value = nodeId;
+            const selectedNode = nodesList.find(n => n.shortName === nodeId);
+            currentNodeDisplay.textContent = selectedNode ? `${selectedNode.shortName} (${selectedNode.baseUrl})` : nodeId;
+            
+            // 更新节点标签的激活状态
+            document.querySelectorAll('.node-badge').forEach(badge => {
+                badge.classList.toggle('active', badge.dataset.node === nodeId);
+            });
+            
+            addLog(`切换到节点: ${nodeId}`, 'info');
+        }
+        
+        // 添加日志
+        function addLog(message, type = 'info') {
+            const logEntry = document.createElement('div');
+            logEntry.className = `log-entry log-${type}`;
+            
+            const time = new Date().toLocaleTimeString();
+            logEntry.innerHTML = `
+                <div class="log-time">${time}</div>
+                <div class="log-message">${message}</div>
+            `;
+            
+            logContainer.appendChild(logEntry);
+            logContainer.scrollTop = logContainer.scrollHeight;
+        }
+        
+        // 显示响应结果
+        function showResponse(data) {
+            let formattedData;
+            try {
+                if (typeof data === 'string') {
+                    data = JSON.parse(data);
+                }
+                formattedData = JSON.stringify(data, null, 2);
+            } catch (e) {
+                formattedData = data;
+            }
+            
+            responseArea.textContent = formattedData;
+        }
+        
+        // API调用函数 (使用 currentNode)
+        async function callAPI(endpoint, method = 'GET', body = null) {
+            if (!currentNode) {
+                addLog('请先选择一个节点', 'error');
+                throw new Error('未选择节点');
+            }
+            // 替换 URL 中的节点占位符，例如 /partyA/info 替换为 /{currentNode}/info
+            // 这里假设 endpoint 以 '/' 开头，且包含节点名称占位符，但当前代码中直接使用 `${currentNode}` 拼接入路径
+            const url = `${API_BASE_URL}/${currentNode}${endpoint}`; // 注意：endpoint 应以 '/' 开头，如 '/info'
+            const options = {
+                method,
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            };
+            
+            if (body && method !== 'GET') {
+                options.body = JSON.stringify(body);
+            }
+            
+            try {
+                addLog(`调用API: ${method} ${url}`, 'info');
+                const response = await fetch(url, options);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP错误: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                addLog(`API调用成功: ${endpoint}`, 'success');
+                return data;
+            } catch (error) {
+                addLog(`API调用失败: ${error.message}`, 'error');
+                throw error;
+            }
+        }
+        
+        // 节点相关API调用
+        async function testAllNodes() {
+            try {
+                const data = await callAPI('/test-all-nodes'); // 注意这个接口可能不需要节点参数？实际需调整
+                showResponse(data);
+            } catch (error) {
+                showResponse({ error: error.message });
+            }
+        }
+        
+        async function getNodeInfo() {
+            try {
+                const data = await callAPI('/info');
+                showResponse(data);
+            } catch (error) {
+                showResponse({ error: error.message });
+            }
+        }
+        
+        async function createIOU() {
+            const iouValue = document.getElementById('iouValue').value;
+            const partyName = document.getElementById('iouPartyName').value;
+            
+            if (!iouValue || !partyName) {
+                alert('请填写IOU金额和对方节点名称');
+                return;
+            }
+            
+            try {
+                const data = await callAPI(`/create-iou?iouValue=${iouValue}&partyName=${encodeURIComponent(partyName)}`, 'POST');
+                showResponse(data);
+            } catch (error) {
+                showResponse({ error: error.message });
+            }
+        }
+        
+        async function getIOUs() {
+            try {
+                const data = await callAPI('/ious');
+                showResponse(data);
+            } catch (error) {
+                showResponse({ error: error.message });
+            }
+        }
+        
+        async function recordTemperature() {
+            const temperature = document.getElementById('temperature').value;
+            const isCritical = document.getElementById('isCritical').value === 'true';
+            const receiver = document.getElementById('temperatureReceiver').value;
+            
+            if (!temperature || !receiver) {
+                alert('请填写温度值和接收方');
+                return;
+            }
+            
+            try {
+                const data = await callAPI(`/record-temperature?temperature=${temperature}&isCritical=${isCritical}&receiver=${encodeURIComponent(receiver)}`, 'POST');
+                showResponse(data);
+            } catch (error) {
+                showResponse({ error: error.message });
+            }
+        }
+        
+        async function queryTemperatures() {
+            try {
+                const data = await callAPI('/temperatures');
+                showResponse(data);
+            } catch (error) {
+                showResponse({ error: error.message });
+            }
+        }
+        
+        async function getReceivers() {
+            try {
+                const data = await callAPI('/receivers');
+                showResponse(data);
+            } catch (error) {
+                showResponse({ error: error.message });
+            }
+        }
+        
+        async function getNodeStatus() {
+            try {
+                const data = await callAPI('/status');
+                showResponse(data);
+            } catch (error) {
+                showResponse({ error: error.message });
+            }
+        }
+        
+        async function getNodePeers() {
+            try {
+                const data = await callAPI('/peers');
+                showResponse(data);
+            } catch (error) {
+                showResponse({ error: error.message });
+            }
+        }
+        
+        async function getMyIOUs() {
+            try {
+                const data = await callAPI('/my-ious');
+                showResponse(data);
+            } catch (error) {
+                showResponse({ error: error.message });
+            }
+        }
+        
+        async function getAllReceivers() {
+            try {
+                // 遍历所有节点获取接收方
+                const results = {};
+                for (const node of nodesList) {
+                    try {
+                        const response = await fetch(`${API_BASE_URL}/${node.shortName}/receivers`);
+                        if (response.ok) {
+                            const data = await response.json();
+                            results[node.shortName] = data;
+                        } else {
+                            results[node.shortName] = { error: `HTTP ${response.status}` };
+                        }
+                    } catch (error) {
+                        results[node.shortName] = { error: error.message };
+                    }
+                }
+                showResponse(results);
+                addLog('已获取所有节点的接收方列表', 'success');
+            } catch (error) {
+                showResponse({ error: error.message });
+            }
+        }
+        
+        async function checkNodeHealth() {
+            try {
+                // 遍历所有节点检查健康状态
+                const results = {};
+                for (const node of nodesList) {
+                    try {
+                        const response = await fetch(`${API_BASE_URL}/${node.shortName}/info`);
+                        if (response.ok) {
+                            const data = await response.json();
+                            results[node.shortName] = {
+                                healthy: true,
+                                status: data.status || '未知',
+                                serverTime: data.serverTime || '未知'
+                            };
+                        } else {
+                            results[node.shortName] = {
+                                healthy: false,
+                                error: `HTTP ${response.status}`
+                            };
+                        }
+                    } catch (error) {
+                        results[node.shortName] = {
+                            healthy: false,
+                            error: error.message
+                        };
+                    }
+                }
+                showResponse(results);
+                addLog('已完成所有节点健康检查', 'success');
+            } catch (error) {
+                showResponse({ error: error.message });
+            }
+        }
+        
+        // 其他API调用函数
+        async function getServerTime() {
+            try {
+                const data = await callAPI('/servertime');
+                showResponse(data);
+            } catch (error) {
+                showResponse({ error: error.message });
+            }
+        }
+        
+        async function getNotaries() {
+            try {
+                const data = await callAPI('/notaries');
+                showResponse(data);
+            } catch (error) {
+                showResponse({ error: error.message });
+            }
+        }
+        
+        async function getFlows() {
+            try {
+                const data = await callAPI('/flows');
+                showResponse(data);
+            } catch (error) {
+                showResponse({ error: error.message });
+            }
+        }
+        
+        async function getStates() {
+            try {
+                const data = await callAPI('/states');
+                showResponse(data);
+            } catch (error) {
+                showResponse({ error: error.message });
+            }
+        }
+        
+        async function getAddresses() {
+            try {
+                const data = await callAPI('/addresses');
+                showResponse(data);
+            } catch (error) {
+                showResponse({ error: error.message });
+            }
+        }
+        
+        async function getPlatformVersion() {
+            try {
+                const data = await callAPI('/platformversion');
+                showResponse(data);
+            } catch (error) {
+                showResponse({ error: error.message });
+            }
+        }
+        
+        // 清空日志
+        function clearLogs() {
+            logContainer.innerHTML = '';
+            addLog('日志已清空', 'info');
+        }
+        
+        // 初始化事件监听器
+        function initEventListeners() {
+            // 节点选择
+            nodeSelect.addEventListener('change', (e) => {
+                selectNode(e.target.value);
+            });
+            
+            // 节点连接测试
+            document.getElementById('testAllNodes').addEventListener('click', testAllNodes);
+            document.getElementById('checkNodeHealth').addEventListener('click', checkNodeHealth);
+            document.getElementById('getAllReceivers').addEventListener('click', getAllReceivers);
+            
+            // 节点信息查询
+            document.getElementById('getNodeInfo').addEventListener('click', getNodeInfo);
+            document.getElementById('getNodeStatus').addEventListener('click', getNodeStatus);
+            document.getElementById('getNodePeers').addEventListener('click', getNodePeers);
+            
+            // IOU操作
+            document.getElementById('createIOU').addEventListener('click', createIOU);
+            document.getElementById('getIOUs').addEventListener('click', getIOUs);
+            document.getElementById('getMyIOUs').addEventListener('click', getMyIOUs);
+            
+            // 温度记录操作
+            document.getElementById('recordTemperature').addEventListener('click', recordTemperature);
+            document.getElementById('queryTemperatures').addEventListener('click', queryTemperatures);
+            document.getElementById('getReceivers').addEventListener('click', getReceivers);
+            
+            // 其他操作
+            document.getElementById('getServerTime').addEventListener('click', getServerTime);
+            document.getElementById('getNotaries').addEventListener('click', getNotaries);
+            document.getElementById('getFlows').addEventListener('click', getFlows);
+            document.getElementById('getStates').addEventListener('click', getStates);
+            document.getElementById('getAddresses').addEventListener('click', getAddresses);
+            document.getElementById('getPlatformVersion').addEventListener('click', getPlatformVersion);
+            
+            // 日志操作
+            document.getElementById('clearLogs').addEventListener('click', clearLogs);
+        }
+        
+        // 页面初始化
+        async function init() {
+            await loadNodesFromDatabase();
+            initEventListeners();
+            addLog('Corda节点管理面板已初始化', 'success');
+            addLog(`当前后端API: ${API_BASE_URL}`, 'info');
+        }
+        
+        // 页面加载完成后初始化
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>

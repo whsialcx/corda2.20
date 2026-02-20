@@ -1,0 +1,734 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>节点管理</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input, select {
+            width: 100%;
+            padding: 8px;
+            box-sizing: border-box;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .checkbox-group input {
+            width: auto;
+        }
+        .section {
+            margin-bottom: 25px;
+            padding: 15px;
+            border: 1px solid #e0e0e0;
+            border-radius: 5px;
+        }
+        .section-title {
+            margin-top: 0;
+            color: #2c3e50;
+        }
+        button {
+            padding: 10px 20px;
+            margin-right: 10px;
+            margin-bottom: 5px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        .btn-primary {
+            background: #3498db;
+            color: white;
+        }
+        .btn-secondary {
+            background: #95a5a6;
+            color: white;
+        }
+        .btn-danger {
+            background: #e74c3c;
+            color: white;
+        }
+        .btn-success {
+            background: #27ae60;
+            color: white;
+        }
+        .btn-warning {
+            background: #f39c12;
+            color: white;
+        }
+        .btn-info {
+            background: #17a2b8;
+            color: white;
+        }
+        .btn-primary:hover { background: #2980b9; }
+        .btn-secondary:hover { background: #7f8c8d; }
+        .btn-danger:hover { background: #c0392b; }
+        .btn-success:hover { background: #219a52; }
+        .btn-warning:hover { background: #e67e22; }
+        .btn-info:hover { background: #138496; }
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 5px;
+            display: none;
+        }
+        .success { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .error { background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .info { background-color: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
+        .nav-links {
+            margin-top: 20px;
+        }
+        .nav-links a {
+            display: inline-block;
+            margin-right: 15px;
+            margin-bottom: 10px;
+            padding: 8px 15px;
+            background: #3498db;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            transition: background 0.3s ease;
+        }
+        .nav-links a:hover {
+            background: #2980b9;
+            transform: translateY(-2px);
+        }
+        .nav-links a.corda-admin {
+            background: #9b59b6;
+        }
+        .nav-links a.corda-admin:hover {
+            background: #8e44ad;
+        }
+        .nodes-list {
+            margin-top: 20px;
+        }
+        .nodes-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+        .nodes-table th, .nodes-table td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        .nodes-table th {
+            background-color: #f2f2f2;
+            font-weight: bold;
+        }
+        .nodes-table tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+        .nodes-table tr:hover {
+            background-color: #f1f1f1;
+        }
+        .refresh-btn {
+            margin-bottom: 10px;
+        }
+        .empty-message {
+            text-align: center;
+            color: #7f8c8d;
+            font-style: italic;
+            padding: 20px;
+        }
+        .deploy-section {
+            background-color: #fff3cd;
+            border-color: #ffeaa7;
+        }
+        .start-section {
+            background-color: #d1ecf1;
+            border-color: #bee5eb;
+        }
+        .deploy-warning {
+            color: #856404;
+            font-size: 14px;
+            margin-top: 10px;
+        }
+        .start-info {
+            color: #0c5460;
+            font-size: 14px;
+            margin-top: 10px;
+        }
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #3498db;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-right: 10px;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .action-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+        }
+        .action-buttons button {
+            margin: 2px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>节点管理</h1>
+        
+        <!-- 节点列表 -->
+        <div class="section">
+            <h2 class="section-title">节点列表</h2>
+            <button class="btn-success refresh-btn" onclick="loadNodesList()">刷新节点列表</button>
+            <div id="nodesList" class="nodes-list">
+                <div class="empty-message">正在加载节点列表...</div>
+            </div>
+        </div>
+
+        <!-- 构造网络部署 -->
+        <div class="section deploy-section">
+            <h2 class="section-title">构造节点网络</h2>
+            <p class="deploy-warning">
+                <strong>注意：</strong>此操作将执行 gradlew.bat clean deployNodes 命令，重新构建并部署所有节点。
+                这可能需要几分钟时间，请耐心等待。
+            </p>
+            <button class="btn-warning" onclick="deployNetwork()" id="deployBtn">构造网络</button>
+            <div id="deployStatus"></div>
+        </div>
+
+        <!-- 启动节点 -->
+        <div class="section start-section">
+            <h2 class="section-title">启动节点</h2>
+            <p class="start-info">
+                <strong>说明：</strong>构造网络完成后，可以启动所有节点或单独启动某个节点。
+            </p>
+            
+            <div style="margin-bottom: 15px;">
+                <button class="btn-info" onclick="startAllNodes()" id="startAllBtn">启动所有节点 (runnodes.bat)</button>
+                <div id="startAllStatus" style="margin-top: 10px;"></div>
+            </div>
+            
+            <div class="form-group">
+                <label for="startNodeName">启动单个节点:</label>
+                <div style="display: flex; gap: 10px;">
+                    <input type="text" id="startNodeName" placeholder="输入节点名称 (例如: PartyA)" style="flex: 1;">
+                    <button class="btn-info" onclick="startSingleNode()" id="startSingleBtn">启动节点</button>
+                </div>
+                <div id="startSingleStatus" style="margin-top: 10px;"></div>
+            </div>
+        </div>
+
+        <!-- 添加节点表单 -->
+        <div class="section">
+            <h2 class="section-title">添加节点</h2>
+            <div class="form-group">
+                <label for="nodeName">节点名称 (X.500格式):</label>
+                <input type="text" id="nodeName" placeholder="例如: O=PartyE,L=Tokyo,C=JP">
+            </div>
+            
+            <div class="form-group">
+                <div class="checkbox-group">
+                    <input type="checkbox" id="autoPorts" onchange="togglePortFields()">
+                    <label for="autoPorts">自动分配端口</label>
+                </div>
+            </div>
+            
+            <div id="portFields">
+                <div class="form-group">
+                    <label for="p2pPort">P2P 端口:</label>
+                    <input type="number" id="p2pPort" placeholder="例如: 10012">
+                </div>
+                <div class="form-group">
+                    <label for="rpcPort">RPC 端口:</label>
+                    <input type="number" id="rpcPort" placeholder="例如: 10013">
+                </div>
+                <div class="form-group">
+                    <label for="adminPort">Admin 端口:</label>
+                    <input type="number" id="adminPort" placeholder="例如: 10053">
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <div class="checkbox-group">
+                    <input type="checkbox" id="autoDb" onchange="toggleDbFields()">
+                    <label for="autoDb">自动生成数据库配置</label>
+                </div>
+            </div>
+            
+            <div id="dbFields">
+                <div class="form-group">
+                    <label for="dbName">数据库名称:</label>
+                    <input type="text" id="dbName" placeholder="例如: corda_party_e">
+                </div>
+                <div class="form-group">
+                    <label for="dbUser">数据库用户:</label>
+                    <input type="text" id="dbUser" placeholder="例如: user_e">
+                </div>
+            </div>
+            
+            <button class="btn-primary" onclick="addNode()">添加节点</button>
+        </div>
+        
+        <!-- 删除节点表单 -->
+        <div class="section">
+            <h2 class="section-title">删除节点</h2>
+            <div class="form-group">
+                <label for="removeNodeName">节点名称 (X.500格式):</label>
+                <input type="text" id="removeNodeName" placeholder="输入要删除的节点名称">
+            </div>
+            <button class="btn-danger" onclick="removeNode()">删除节点</button>
+        </div>
+        
+        <!-- 结果显示 -->
+        <div id="result" class="result"></div>
+        
+        <!-- 导航链接 -->
+        <div class="nav-links">
+            <a href="/test.html">返回登录页</a>
+            <a href="/dashboard.html">仪表板</a>
+            <a href="/multi-node-dashboard.html" class="corda-admin">🌐 Corda管理界面</a>
+        </div>
+    </div>
+
+    <script>
+        // 页面加载时检查登录状态并加载节点列表
+        document.addEventListener('DOMContentLoaded', function() {
+            const isLoggedIn = localStorage.getItem('isLoggedIn');
+            if (!isLoggedIn || isLoggedIn !== 'true') {
+                alert('请先登录！');
+                window.location.href = '/test.html';
+                return;
+            }
+            
+            // 加载节点列表
+            loadNodesList();
+        });
+        
+        // 加载节点列表函数
+        function loadNodesList() {
+            const nodesListDiv = document.getElementById('nodesList');
+            nodesListDiv.innerHTML = '<div class="empty-message">正在加载节点列表...</div>';
+            
+            fetch('/api/nodes/list')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // 优先使用后端返回的详细对象列表 nodeDetails
+                        const listData = (data.nodeDetails && data.nodeDetails.length > 0) ? data.nodeDetails : data.nodes;
+                        displayNodesList(listData, data.count);
+                    } else {
+                        nodesListDiv.innerHTML = `<div class="empty-message">加载失败: ${data.message}</div>`;
+                    }
+                })
+                .catch(error => {
+                    nodesListDiv.innerHTML = `<div class="empty-message">请求失败: ${error}</div>`;
+                });
+        }
+        
+        // 显示节点列表（包含 baseUrl 列）
+        function displayNodesList(nodes, count) {
+            const nodesListDiv = document.getElementById('nodesList');
+            
+            if (!nodes || nodes.length === 0) {
+                nodesListDiv.innerHTML = '<div class="empty-message">暂无节点</div>';
+                return;
+            }
+            
+            let html = `<p><strong>节点总数: ${count}</strong></p>`;
+            html += '<table class="nodes-table">';
+            html += '<thead><tr><th>序号</th><th>节点名称 (X.500)</th><th>服务地址 (Spring Boot)</th><th>操作</th></tr></thead>';
+            html += '<tbody>';
+            
+            nodes.forEach((node, index) => {
+                // 【核心修复点】: 处理数据格式差异。如果 node 是字符串直接用；如果是对象，优先读 name，兜底读 nodeName
+                let nodeName = '';
+                let baseUrl = '未分配';
+                
+                if (typeof node === 'string') {
+                    nodeName = node;
+                } else {
+                    nodeName = node.name || node.nodeName || '未知节点';
+                    baseUrl = node.baseUrl || '未分配';
+                }
+                
+                const badge = getNodeBadge(nodeName);
+                const nodeDir = extractNodeDir(nodeName);
+                
+                html += `<tr>
+                    <td>${index + 1}</td>
+                    <td>${nodeName} ${badge}</td>
+                    <td><code style="background:#e8f4fd;padding:3px 6px;border-radius:4px;color:#0366d6;">${baseUrl}</code></td>
+                    <td>
+                        <div class="action-buttons">
+                            <button class="btn-secondary" onclick="setRemoveNodeName('${nodeName}')">删除</button>
+                            <button class="btn-info" onclick="setStartNodeName('${nodeDir}')">启动</button>
+                            <button class="btn-danger" onclick="stopNodeByName('${nodeDir}', this)">终止</button>
+                        </div>
+                    </td>
+                </tr>`;
+            });
+            
+            html += '</tbody></table>';
+            nodesListDiv.innerHTML = html;
+        }
+
+        function getNodeBadge(nodeName) {
+            const badges = {
+                'PartyA': '<span style="background:#3498db;color:white;padding:2px 5px;border-radius:3px;font-size:12px;">A</span>',
+                'PartyB': '<span style="background:#2ecc71;color:white;padding:2px 5px;border-radius:3px;font-size:12px;">B</span>',
+                'PartyC': '<span style="background:#9b59b6;color:white;padding:2px 5px;border-radius:3px;font-size:12px;">C</span>',
+                'PartyE': '<span style="background:#e74c3c;color:white;padding:2px 5px;border-radius:3px;font-size:12px;">E</span>'
+            };
+            
+            const match = nodeName.match(/O=([^,]+)/);
+            const orgName = match ? match[1] : nodeName;
+            return badges[orgName] || '';
+        }
+        
+        // 从节点名称中提取目录名 (组织名)
+        function extractNodeDir(nodeName) {
+            const match = nodeName.match(/O=([^,]+)/);
+            return match ? match[1] : nodeName;
+        }
+        
+        // 设置删除节点名称
+        function setRemoveNodeName(nodeName) {
+            document.getElementById('removeNodeName').value = nodeName;
+            // 滚动到删除节点表单
+            document.getElementById('removeNodeName').scrollIntoView({ behavior: 'smooth' });
+        }
+        
+        // 设置启动节点名称
+        function setStartNodeName(nodeDir) {
+            document.getElementById('startNodeName').value = nodeDir;
+            // 滚动到启动节点表单
+            document.getElementById('startNodeName').scrollIntoView({ behavior: 'smooth' });
+        }
+        
+        // 构造网络函数
+        function deployNetwork() {
+            const deployBtn = document.getElementById('deployBtn');
+            const deployStatus = document.getElementById('deployStatus');
+            
+            if (!confirm('确定要构造网络吗？这将执行 gradlew.bat clean deployNodes 命令，可能需要几分钟时间。')) {
+                return;
+            }
+            
+            // 禁用按钮并显示加载状态
+            deployBtn.disabled = true;
+            deployBtn.innerHTML = '<span class="loading"></span>构造网络中...';
+            deployStatus.innerHTML = '<div class="result info">正在构造网络，请耐心等待...</div>';
+            deployStatus.style.display = 'block';
+            
+            fetch('/api/nodes/deploy', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    deployStatus.innerHTML = `<div class="result success">
+                        <strong>成功:</strong> 网络构造完成！<br>
+                        <details style="margin-top: 10px;">
+                            <summary>查看输出详情</summary>
+                            <pre style="background: white; padding: 10px; border-radius: 5px; overflow: auto; max-height: 300px;">${data.output}</pre>
+                        </details>
+                    </div>`;
+                } else {
+                    deployStatus.innerHTML = `<div class="result error">
+                        <strong>错误:</strong> ${data.message}<br>
+                        <details style="margin-top: 10px;">
+                            <summary>查看错误详情</summary>
+                            <pre style="background: white; padding: 10px; border-radius: 5px; overflow: auto; max-height: 300px;">${data.error || data.output}</pre>
+                        </details>
+                    </div>`;
+                }
+            })
+            .catch(error => {
+                deployStatus.innerHTML = `<div class="result error">
+                    <strong>请求失败:</strong> ${error}
+                </div>`;
+            })
+            .finally(() => {
+                // 恢复按钮状态
+                deployBtn.disabled = false;
+                deployBtn.innerHTML = '构造网络';
+            });
+        }
+        
+        // 启动所有节点
+        function startAllNodes() {
+            const startAllBtn = document.getElementById('startAllBtn');
+            const startAllStatus = document.getElementById('startAllStatus');
+            
+            if (!confirm('确定要启动所有节点吗？这将运行 build/nodes/runnodes.bat 脚本。')) {
+                return;
+            }
+            
+            // 禁用按钮并显示加载状态
+            startAllBtn.disabled = true;
+            startAllBtn.innerHTML = '<span class="loading"></span>启动所有节点中...';
+            startAllStatus.innerHTML = '<div class="result info">正在启动所有节点，请耐心等待...</div>';
+            startAllStatus.style.display = 'block';
+            
+            fetch('/api/nodes/start-all', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    startAllStatus.innerHTML = `<div class="result success">
+                        <strong>成功:</strong> 所有节点启动成功！<br>
+                        <details style="margin-top: 10px;">
+                            <summary>查看输出详情</summary>
+                            <pre style="background: white; padding: 10px; border-radius: 5px; overflow: auto; max-height: 300px;">${data.output}</pre>
+                        </details>
+                    </div>`;
+                } else {
+                    startAllStatus.innerHTML = `<div class="result error">
+                        <strong>错误:</strong> ${data.message}<br>
+                        <details style="margin-top: 10px;">
+                            <summary>查看错误详情</summary>
+                            <pre style="background: white; padding: 10px; border-radius: 5px; overflow: auto; max-height: 300px;">${data.error || data.output}</pre>
+                        </details>
+                    </div>`;
+                }
+            })
+            .catch(error => {
+                startAllStatus.innerHTML = `<div class="result error">
+                    <strong>请求失败:</strong> ${error}
+                </div>`;
+            })
+            .finally(() => {
+                // 恢复按钮状态
+                startAllBtn.disabled = false;
+                startAllBtn.innerHTML = '启动所有节点 (runnodes.bat)';
+            });
+        }
+        
+        // 启动单个节点
+        function startSingleNode() {
+            const nodeName = document.getElementById('startNodeName').value;
+            const startSingleBtn = document.getElementById('startSingleBtn');
+            const startSingleStatus = document.getElementById('startSingleStatus');
+            
+            if (!nodeName) {
+                showResult('错误: 请输入要启动的节点名称', false);
+                return;
+            }
+            
+            if (!confirm(`确定要启动节点 "${nodeName}" 吗？`)) {
+                return;
+            }
+            
+            // 禁用按钮并显示加载状态
+            startSingleBtn.disabled = true;
+            startSingleBtn.innerHTML = '<span class="loading"></span>启动中...';
+            startSingleStatus.innerHTML = '<div class="result info">正在启动节点，请耐心等待...</div>';
+            startSingleStatus.style.display = 'block';
+            
+            fetch('/api/nodes/start', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ nodeName: nodeName })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    startSingleStatus.innerHTML = `<div class="result success">
+                        <strong>成功:</strong> 节点 ${nodeName} 启动成功！<br>
+                        <details style="margin-top: 10px;">
+                            <summary>查看输出详情</summary>
+                            <pre style="background: white; padding: 10px; border-radius: 5px; overflow: auto; max-height: 300px;">${data.output}</pre>
+                        </details>
+                    </div>`;
+                } else {
+                    startSingleStatus.innerHTML = `<div class="result error">
+                        <strong>错误:</strong> ${data.message}<br>
+                        <details style="margin-top: 10px;">
+                            <summary>查看错误详情</summary>
+                            <pre style="background: white; padding: 10px; border-radius: 5px; overflow: auto; max-height: 300px;">${data.error || data.output}</pre>
+                        </details>
+                    </div>`;
+                }
+            })
+            .catch(error => {
+                startSingleStatus.innerHTML = `<div class="result error">
+                    <strong>请求失败:</strong> ${error}
+                </div>`;
+            })
+            .finally(() => {
+                // 恢复按钮状态
+                startSingleBtn.disabled = false;
+                startSingleBtn.innerHTML = '启动节点';
+            });
+        }
+        function stopNodeByName(nodeDir, btn) {
+            if (!nodeDir) {
+                showResult('错误: 无效的节点目录名', false);
+                return;
+            }
+            if (!confirm(`确定要终止节点 "${nodeDir}" 吗？`)) return;
+
+            const originalHtml = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = '<span class="loading"></span>终止中...';
+
+            fetch('/api/nodes/stop', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ nodeName: nodeDir })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showResult(`节点 ${nodeDir} 已终止（如终止失败请查看输出）`, true);
+                    // 刷新节点列表以更新状态
+                    loadNodesList();
+                } else {
+                    showResult('节点终止失败: ' + (data.message || data.error || data.output), false);
+                }
+            })
+            .catch(error => {
+                showResult('请求失败: ' + error, false);
+            })
+            .finally(() => {
+                btn.disabled = false;
+                btn.innerHTML = originalHtml;
+            });
+        }
+
+        
+        function togglePortFields() {
+            const autoPorts = document.getElementById('autoPorts').checked;
+            document.getElementById('portFields').style.display = autoPorts ? 'none' : 'block';
+        }
+        
+        function toggleDbFields() {
+            const autoDb = document.getElementById('autoDb').checked;
+            document.getElementById('dbFields').style.display = autoDb ? 'none' : 'block';
+        }
+        
+        function addNode() {
+            const request = {
+                nodeName: document.getElementById('nodeName').value,
+                autoPorts: document.getElementById('autoPorts').checked,
+                autoDb: document.getElementById('autoDb').checked
+            };
+            
+            if (!request.nodeName) {
+                showResult('错误: 请输入节点名称', false);
+                return;
+            }
+            
+            if (!request.autoPorts) {
+                request.p2pPort = parseInt(document.getElementById('p2pPort').value);
+                request.rpcPort = parseInt(document.getElementById('rpcPort').value);
+                request.adminPort = parseInt(document.getElementById('adminPort').value);
+            }
+            
+            if (!request.autoDb) {
+                request.dbName = document.getElementById('dbName').value;
+                request.dbUser = document.getElementById('dbUser').value;
+            }
+            
+            fetch('/api/nodes/add', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(request)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showResult(`节点添加成功！服务地址: ${data.baseUrl || '未知'}`, true);
+                    // 清空表单
+                    document.getElementById('nodeName').value = '';
+                    document.getElementById('p2pPort').value = '';
+                    document.getElementById('rpcPort').value = '';
+                    document.getElementById('adminPort').value = '';
+                    document.getElementById('dbName').value = '';
+                    document.getElementById('dbUser').value = '';
+                    // 刷新节点列表
+                    loadNodesList();
+                } else {
+                    showResult('节点添加失败: ' + data.message + (data.error ? ' - ' + data.error : ''), false);
+                }
+            })
+            .catch(error => showResult('请求失败: ' + error, false));
+        }
+        
+        function removeNode() {
+            const nodeName = document.getElementById('removeNodeName').value;
+            
+            if (!nodeName) {
+                showResult('错误: 请输入要删除的节点名称', false);
+                return;
+            }
+            
+            if (!confirm(`确定要删除节点 "${nodeName}" 吗？此操作不可逆！`)) {
+                return;
+            }
+            
+            fetch('/api/nodes/remove', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ nodeName: nodeName })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showResult('节点删除成功！输出: ' + data.output, true);
+                    document.getElementById('removeNodeName').value = '';
+                    // 刷新节点列表
+                    loadNodesList();
+                } else {
+                    showResult('节点删除失败: ' + data.message + (data.error ? ' - ' + data.error : ''), false);
+                }
+            })
+            .catch(error => showResult('请求失败: ' + error, false));
+        }
+        
+        function showResult(message, isSuccess) {
+            const resultDiv = document.getElementById('result');
+            resultDiv.style.display = 'block';
+            resultDiv.className = 'result ' + (isSuccess ? 'success' : 'error');
+            resultDiv.innerHTML = `<strong>${isSuccess ? '成功' : '错误'}:</strong> ${message}`;
+            
+            // 5秒后自动隐藏结果
+            setTimeout(() => {
+                resultDiv.style.display = 'none';
+            }, 5000);
+        }
+        
+        // 初始化显示/隐藏字段
+        togglePortFields();
+        toggleDbFields();
+    </script>
+</body>
+</html>

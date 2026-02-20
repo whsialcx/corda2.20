@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>登录注册测试</title>
+    <style>
+        .container { max-width: 500px; margin: 50px auto; padding: 20px; }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; }
+        input { width: 100%; padding: 8px; box-sizing: border-box; }
+        button { padding: 10px 20px; margin-right: 10px; }
+        .result { margin-top: 20px; padding: 10px; border-radius: 5px; }
+        .success { background-color: #d4edda; color: #155724; }
+        .error { background-color: #f8d7da; color: #721c24; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>注册</h2>
+        <div class="form-group">
+            <label>用户名:</label>
+            <input type="text" id="regUsername" placeholder="请输入用户名">
+        </div>
+        <div class="form-group">
+            <label>密码:</label>
+            <input type="password" id="regPassword" placeholder="请输入密码">
+        </div>
+        <div class="form-group">
+            <label>邮箱:</label>
+            <input type="email" id="regEmail" placeholder="请输入邮箱">
+        </div>
+        <div class="form-group">
+            <label>全名:</label>
+            <input type="text" id="regFullName" placeholder="请输入全名">
+        </div>
+        <button onclick="register()">注册</button>
+
+        <h2 style="margin-top: 40px;">登录</h2>
+        <div class="form-group">
+            <label>用户名:</label>
+            <input type="text" id="loginUsername" placeholder="请输入用户名">
+        </div>
+        <div class="form-group">
+            <label>密码:</label>
+            <input type="password" id="loginPassword" placeholder="请输入密码">
+        </div>
+        <button onclick="login()">登录</button>
+
+        <div id="result" class="result" style="display: none;"></div>
+    </div>
+
+    <script>
+        function register() {
+            const data = {
+                username: document.getElementById('regUsername').value,
+                password: document.getElementById('regPassword').value,
+                email: document.getElementById('regEmail').value,
+                fullName: document.getElementById('regFullName').value
+            };
+
+            fetch('/api/auth/register', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            })
+            .then(response => response.json())
+            .then(data => showResult(data))
+            .catch(error => showResult({success: false, message: '请求失败: ' + error}));
+        }
+
+        function login() {
+    const data = {
+        username: document.getElementById('loginUsername').value,
+        password: document.getElementById('loginPassword').value
+    };
+
+    fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+    })
+    .then(response => response.json())
+    .then(data => {
+        showResult(data);
+        if (data.success) {
+            // 登录成功，保存用户信息到 localStorage
+            localStorage.setItem('username', data.username);
+            localStorage.setItem('isLoggedIn', 'true');
+            
+            // 2秒后跳转到首页
+            setTimeout(() => {
+                window.location.href = '/dashboard.html';
+            }, 2000);
+        }
+    })
+    .catch(error => showResult({success: false, message: '请求失败: ' + error}));
+}
+
+        function showResult(data) {
+            const resultDiv = document.getElementById('result');
+            resultDiv.style.display = 'block';
+            resultDiv.className = 'result ' + (data.success ? 'success' : 'error');
+            resultDiv.innerHTML = `<strong>${data.success ? '成功' : '错误'}:</strong> ${data.message}`;
+        }
+    </script>
+</body>
+</html>

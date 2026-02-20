@@ -1,0 +1,13 @@
+我的整个项目目录大概是
+--spring
+	--demo
+		--script  存储的是corda的相关文件和代码
+			--clients
+			--config
+			--contracts
+			--workflows
+		--src 存储的是我的项目的主体
+			--main
+				--java
+				--resources
+			--test

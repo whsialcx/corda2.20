@@ -1,0 +1,12 @@
+12月 08, 2025 3:56:12 下午 org.apache.coyote.AbstractProtocol init
+信息: Initializing ProtocolHandler ["http-nio-50008"]
+12月 08, 2025 3:56:12 下午 org.apache.catalina.core.StandardService startInternal
+信息: Starting service [Tomcat]
+12月 08, 2025 3:56:12 下午 org.apache.catalina.core.StandardEngine startInternal
+信息: Starting Servlet engine: [Apache Tomcat/10.1.20]
+12月 08, 2025 3:56:12 下午 org.apache.catalina.core.ApplicationContext log
+信息: Initializing Spring embedded WebApplicationContext
+12月 08, 2025 3:56:19 下午 org.apache.coyote.AbstractProtocol start
+信息: Starting ProtocolHandler ["http-nio-50008"]
+12月 08, 2025 3:56:20 下午 org.apache.catalina.core.ApplicationContext log
+信息: Initializing Spring DispatcherServlet 'dispatcherServlet'
