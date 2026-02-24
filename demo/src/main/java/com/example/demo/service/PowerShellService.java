@@ -6,12 +6,12 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.io.*;
-import java.nio.file.Paths;
-import java.util.concurrent.TimeUnit;
-import java.nio.file.Files;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -39,11 +39,9 @@ public class PowerShellService {
     // 获取项目的绝对根路径
     private String getProjectRootPath() {
         try {
-            // 获取当前工作目录
             String currentDir = System.getProperty("user.dir");
             logger.info("当前工作目录: {}", currentDir);
             
-            // 如果是相对路径，转换为绝对路径
             File baseDir = new File(currentDir);
             File projectRoot = resolveRelativePath(baseDir, cordaProjectRoot);
             
@@ -64,15 +62,10 @@ public class PowerShellService {
         }
         
         if (path.startsWith(".")) {
-            // 处理相对路径
             File resolved = new File(baseDir, path);
-            
-            // 如果不存在，尝试从项目的上级目录查找
             if (!resolved.exists() && path.startsWith("./..")) {
-                // 尝试从更上级的目录查找
                 File parent = baseDir.getParentFile();
                 if (parent != null) {
-                    // 移除开头的"./../"
                     String remainingPath = path.substring(4);
                     return new File(parent, remainingPath);
                 }
@@ -89,7 +82,6 @@ public class PowerShellService {
             String projectRoot = getProjectRootPath();
             File projectRootDir = new File(projectRoot);
             
-            // 如果scriptPath是相对路径
             if (scriptPath.startsWith(".")) {
                 File scriptFile = new File(projectRootDir, scriptPath.substring(1));
                 logger.info("脚本路径: {}", scriptFile.getAbsolutePath());
@@ -143,12 +135,10 @@ public class PowerShellService {
                 }
             }
 
-            // 等待较长时间以完成构建
             boolean finished = proc.waitFor(10, TimeUnit.MINUTES);
             int exitCode = finished ? proc.exitValue() : -1;
 
             logger.info("gradlew 执行完成，退出码: {}", exitCode);
-
             return new ProcessResult(exitCode, output.toString(), "", finished);
 
         } catch (IOException | InterruptedException e) {
@@ -187,110 +177,80 @@ public class PowerShellService {
         return nodes;
     }
     
-    public ProcessResult executePowerShellScript(String arguments) {
+    /**
+     * 执行 PowerShell 脚本，参数以 List<String> 形式传递（跨平台安全）
+     */
+    public ProcessResult executePowerShellScript(List<String> args) {
         try {
-            // 使用配置的 Corda 项目根目录
+            // 确保工作目录存在
             String projectRoot = getProjectRootPath();
             File projectRootDir = new File(projectRoot);
-            
-            logger.info("执行PowerShell脚本，项目目录: {}", projectRoot);
-            logger.info("目录是否存在: {}", projectRootDir.exists());
-            
             if (!projectRootDir.exists()) {
                 logger.error("Corda 项目根目录不存在: {}", projectRoot);
                 return new ProcessResult(-1, "", "Corda 项目根目录不存在: " + projectRoot, false);
             }
             
-            // 获取完整的脚本路径
+            // 获取脚本绝对路径
             String fullScriptPath = getScriptAbsolutePath();
             File scriptFile = new File(fullScriptPath);
-            
-            logger.info("脚本路径: {}", fullScriptPath);
-            logger.info("脚本是否存在: {}", scriptFile.exists());
-            
             if (!scriptFile.exists()) {
                 logger.error("PowerShell 脚本不存在: {}", fullScriptPath);
                 return new ProcessResult(-1, "", "脚本文件不存在: " + fullScriptPath, false);
             }
             
-            logger.info("执行 PowerShell 脚本: {}", fullScriptPath);
-            logger.info("工作目录: {}", projectRoot);
-            logger.info("参数: {}", arguments);
-            logger.info("使用 PowerShell 命令: {}", getPowerShellCommand());
-            
-            // 构建进程
-            ProcessBuilder processBuilder = new ProcessBuilder();
-            
-            // 设置命令 - 跨平台兼容
+            // 构建命令列表
+            List<String> command = new ArrayList<>();
             String powerShellCmd = getPowerShellCommand();
+            command.add(powerShellCmd);
             
-            if (arguments != null && !arguments.trim().isEmpty()) {
-                // 如果有参数，构建完整的命令数组
-                String[] argsArray = arguments.split("\\s+");
-                List<String> commandList = new ArrayList<>();
-                
-                commandList.add(powerShellCmd);
-                if (isWindows()) {
-                    commandList.add("-ExecutionPolicy");
-                    commandList.add("Bypass");
-                }
-                commandList.add("-File");
-                commandList.add(fullScriptPath);
-                
-                // 添加额外参数
-                for (String arg : argsArray) {
-                    commandList.add(arg);
-                }
-                
-                processBuilder.command(commandList.toArray(new String[0]));
-            } else {
-                // 没有额外参数
-                List<String> commandList = new ArrayList<>();
-                commandList.add(powerShellCmd);
-                if (isWindows()) {
-                    commandList.add("-ExecutionPolicy");
-                    commandList.add("Bypass");
-                }
-                commandList.add("-File");
-                commandList.add(fullScriptPath);
-                
-                processBuilder.command(commandList);
+            if (isWindows()) {
+                command.add("-ExecutionPolicy");
+                command.add("Bypass");
+            }
+            command.add("-File");
+            command.add(fullScriptPath);
+            
+            // 添加传入的参数
+            if (args != null) {
+                command.addAll(args);
             }
             
-            // 设置 Corda 项目根目录为工作目录
-            processBuilder.directory(projectRootDir);
+            logger.info("执行命令: {}", String.join(" ", command));
+            logger.info("工作目录: {}", projectRootDir.getAbsolutePath());
             
-            // 重定向错误流到输出流
-            processBuilder.redirectErrorStream(true);
+            ProcessBuilder pb = new ProcessBuilder(command);
+            pb.directory(projectRootDir);
+            pb.redirectErrorStream(true);
             
-            Process process = processBuilder.start();
+            Process process = pb.start();
             
-            // 读取输出流
-            BufferedReader outputReader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+            // 读取输出
             StringBuilder output = new StringBuilder();
-            
-            // 读取标准输出
-            String line;
-            while ((line = outputReader.readLine()) != null) {
-                output.append(line).append("\n");
-                logger.info("PowerShell 输出: {}", line);
+            try (BufferedReader reader = new BufferedReader(
+                    new InputStreamReader(process.getInputStream(), StandardCharsets.UTF_8))) {
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    output.append(line).append("\n");
+                    logger.info("PowerShell 输出: {}", line);
+                }
             }
             
-            // 等待进程完成
-            boolean finished = process.waitFor(60, TimeUnit.SECONDS);
+            // 等待完成（超时5分钟）
+            boolean finished = process.waitFor(5, TimeUnit.MINUTES);
             int exitCode = finished ? process.exitValue() : -1;
             
             logger.info("PowerShell 脚本执行完成，退出码: {}", exitCode);
             
             return new ProcessResult(
-                exitCode, 
-                output.toString(), 
-                "",  // 错误信息已在输出流中
-                finished
+                exitCode,
+                output.toString(),
+                "",  // 错误已合并到输出流
+                finished && exitCode == 0
             );
+            
         } catch (IOException | InterruptedException e) {
             logger.error("执行 PowerShell 脚本失败", e);
-            Thread.currentThread().interrupt(); // 恢复中断状态
+            Thread.currentThread().interrupt();
             return new ProcessResult(-1, "", "执行脚本时发生错误: " + e.getMessage(), false);
         }
     }
@@ -357,10 +317,8 @@ public class PowerShellService {
             return new ProcessResult(-1, "", "Corda 项目根目录不存在: " + projectRoot, false);
         }
 
-        // Ubuntu 下使用 runnodes 脚本（无扩展名）
         File runnodesScript = new File(projectRootDir, "build/nodes/runnodes");
         if (!runnodesScript.exists()) {
-            // 如果不存在，尝试带 .bat 扩展名的版本
             runnodesScript = new File(projectRootDir, "build/nodes/runnodes.bat");
             if (!runnodesScript.exists()) {
                 logger.error("runnodes 脚本不存在: {}", runnodesScript.getAbsolutePath());
@@ -375,7 +333,6 @@ public class PowerShellService {
             if (isWindows()) {
                 pb.command("cmd.exe", "/c", "runnodes.bat");
             } else {
-                // Ubuntu 下可能需要赋予执行权限
                 pb.command("bash", runnodesScript.getAbsolutePath());
             }
             pb.directory(new File(projectRootDir, "build/nodes"));
@@ -392,7 +349,6 @@ public class PowerShellService {
                 }
             }
             
-            // 等待进程完成
             boolean finished = proc.waitFor(10, TimeUnit.SECONDS);
             int exitCode = finished ? proc.exitValue() : 0;
             
@@ -421,7 +377,6 @@ public class PowerShellService {
             return new ProcessResult(-1, "", "节点目录不存在: " + nodeDir.getAbsolutePath(), false);
         }
 
-        // Ubuntu 下使用 bash 脚本启动节点
         File startScript = new File(nodeDir, "startNode");
         if (!startScript.exists()) {
             startScript = new File(nodeDir, "startNode.bat");
@@ -450,7 +405,6 @@ public class PowerShellService {
                 }
             }
             
-            // 等待一段时间
             boolean finished = proc.waitFor(5, TimeUnit.SECONDS);
             int exitCode = finished ? proc.exitValue() : 0;
             
@@ -544,7 +498,7 @@ public class PowerShellService {
         }
     }
 
-    // 内部类保持不变
+    // 内部类
     public static class ProcessResult {
         private final int exitCode;
         private final String output;

@@ -1,4 +1,4 @@
-#!/usr/bin/env pwsh
+﻿#!/usr/bin/env pwsh
 [CmdletBinding(DefaultParameterSetName="Help")]
 param(
     [Parameter(Mandatory=$true, ParameterSetName="AddNode")]
@@ -27,20 +27,17 @@ param(
 
     [Parameter(ParameterSetName="AddNode")]
     [switch]$AutoDb,
-
-    # 独立的帮助参数集
     [Parameter(ParameterSetName="Help")]
     [switch]$Help
 )
 
-# --- 颜色定义 ---
 $ESC = [char]27
 $RED = "$ESC[91m"
 $GREEN = "$ESC[92m"
 $YELLOW = "$ESC[93m"
 $BLUE = "$ESC[94m"
 $NC = "$ESC[0m"
-# --- 日志函数 ---
+
 function Write-Info { param([string]$message) Write-Host "${BLUE}[INFO]${NC} $message" }
 function Write-Success { param([string]$message) Write-Host "${GREEN}[SUCCESS]${NC} $message" }
 function Write-Warning { param([string]$message) Write-Host "${YELLOW}[WARNING]${NC} $message" }
@@ -84,7 +81,6 @@ function Show-Usage {
     Write-Host ""
 }
 
-#节点检测函数
 function Test-NodeExists 
 {
     param([string]$NodeName)
@@ -99,7 +95,7 @@ function Test-NodeExists
     }
     
     $content = Get-Content $buildGradleFile -Raw -Encoding UTF8
-    # 匹配所有节点的name
+  
     $pattern = 'name\s+"([^"]+)"'
     $matches = [regex]::Matches($content, $pattern)
     
@@ -118,7 +114,7 @@ function Test-NodeExists
     return $false
 }
 
-# 检查要删除的节点是否存在
+
 function Test-NodeToRemoveExists 
 {
     param([string]$NodeName)
@@ -150,19 +146,18 @@ function Test-NodeToRemoveExists
     return $false
 }
 
-#端口检测函数 - Ubuntu兼容版本
+
 function Test-PortInUse 
 {
     param([int]$Port)
     try 
     {
-        # 使用 netstat 命令检查端口占用
+      
         $result = netstat -tuln 2>$null | Select-String ":$Port\s"
         if ($result) {
             return $true
         }
         
-        # 使用 lsof 命令作为备选检查
         $result = lsof -i:$Port 2>$null
         if ($result) {
             return $true
@@ -176,7 +171,6 @@ function Test-PortInUse
     }
 }
 
-# 获取下一个可用端口函数
 function Get-NextAvailablePort 
 {
     param([int]$StartPort)
@@ -195,8 +189,7 @@ function Auto-AssignPorts
     Write-Info "正在自动分配端口..."
     
     $content = Get-Content "build.gradle" -Raw -Encoding UTF8
-    
-    # 提取所有已配置的端口（关键修复：强制使用 @() 包裹结果，确保即使为空或只有1个结果，也绝对是数组）
+
     $p2pMatches = [regex]::Matches($content, 'p2p(?:Port\s+|Address\s+".*?:)(\d+)"?')
     $allP2pPorts = @($p2pMatches | ForEach-Object { [int]$_.Groups[1].Value })
     
@@ -205,8 +198,6 @@ function Auto-AssignPorts
     
     $adminMatches = [regex]::Matches($content, 'adminAddress\("172\.18\.44\.66:(\d+)"\)')
     $allAdminPorts = @($adminMatches | ForEach-Object { [int]$_.Groups[1].Value })
-    
-    # 所有已使用的端口（前面加上 @() 确保它是以数组拼接的模式运行，而不是数学相加）
     $allUsedPorts = @() + $allP2pPorts + $allRpcPorts + $allAdminPorts
     Write-Info "现有配置中的端口: $($allUsedPorts -join ', ')"
     
