@@ -416,6 +416,24 @@ public class PowerShellService {
             return new ProcessResult(-1, "", "启动节点时发生错误: " + e.getMessage(), false);
         }
     }
+
+    /**
+     * Corda 默认在 build/nodes/ 下生成以 O 字段命名的文件夹
+     */
+    public File getNodeBuildDirectory(String nodeName) {
+        // 1. 提取短名称 (例如 O=PartyA,L=London,C=GB -> PartyA)
+        String folderName = nodeName;
+        Pattern pattern = Pattern.compile("O=([^,]+)");
+        Matcher matcher = pattern.matcher(nodeName);
+        if (matcher.find()) {
+            folderName = matcher.group(1).trim();
+        }
+
+        // 2. 使用 File 构造器自动处理跨平台路径分隔符
+        String projectRoot = getProjectRootPath(); // 使用您已有的方法
+        File nodesDir = new File(projectRoot, "build" + File.separator + "nodes");
+        return new File(nodesDir, folderName);
+    }
     
     // 停止指定节点 - Ubuntu 版本
     public ProcessResult stopNode(String nodeName) {

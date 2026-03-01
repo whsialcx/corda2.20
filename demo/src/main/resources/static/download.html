@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>Corda 节点下载测试</title>
+    <style>
+        .container { padding: 20px; font-family: sans-serif; }
+        .btn { padding: 10px 20px; cursor: pointer; background: #007bff; color: white; border: none; border-radius: 4px; }
+        .btn:disabled { background: #ccc; }
+        #status { margin-top: 15px; padding: 10px; border-radius: 4px; display: none; }
+        .error { background: #f8d7da; color: #721c24; }
+        .info { background: #d1ecf1; color: #0c5460; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>节点分发系统</h2>
+    <button id="downloadBtn" class="btn">下载 PartyA 节点包</button>
+    <div id="status"></div>
+</div>
+
+<script>
+    const downloadBtn = document.getElementById('downloadBtn');
+    const statusDiv = document.getElementById('status');
+
+    downloadBtn.addEventListener('click', async () => {
+        // 测试使用的节点全名，后端会自动解析出 "PartyA"
+        const nodeName = "O=PartyA,L=London,C=GB"; 
+        updateStatus("正在请求文件，请稍候...", "info");
+        downloadBtn.disabled = true;
+
+        try {
+            // 调用 NodeController.java 中定义的接口
+            const response = await fetch(`/api/nodes/download/${encodeURIComponent(nodeName)}`);
+
+            // 处理 202 或 404 等未就绪状态
+            if (response.status === 202 || response.status === 404) {
+                const result = await response.json();
+                updateStatus(`提示：${result.message}`, "error");
+                return;
+            }
+
+            if (!response.ok) {
+                throw new Error(`服务器响应错误: ${response.status}`);
+            }
+
+            // 处理 200 OK 的二进制流
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+            
+            // 模拟点击下载
+            const a = document.createElement('a');
+            a.href = url;
+            // 从响应头获取文件名或自定义
+            a.download = "PartyA_Node.zip"; 
+            document.body.appendChild(a);
+            a.click();
+            
+            // 清理
+            window.URL.revokeObjectURL(url);
+            document.body.removeChild(a);
+            updateStatus("下载开始！", "info");
+
+        } catch (error) {
+            updateStatus(`下载失败: ${error.message}`, "error");
+        } finally {
+            downloadBtn.disabled = false;
+        }
+    });
+
+    function updateStatus(msg, type) {
+        statusDiv.innerText = msg;
+        statusDiv.className = type;
+        statusDiv.style.display = "block";
+    }
+</script>
+</body>
+</html>

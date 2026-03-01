@@ -8,7 +8,15 @@ import com.example.demo.service.CordaNodeManager;
 import com.example.demo.service.PowerShellService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.core.io.FileSystemResource;
+import org.springframework.core.io.Resource;
+import org.springframework.http.*;
+import org.springframework.http.HttpHeaders;
+import java.util.zip.*;
 
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.*;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -324,6 +332,57 @@ public class NodeController {
         }
         return response;
     }
+
+    @GetMapping("/download/{nodeName}")
+    public ResponseEntity<Object> downloadNodeZip(@PathVariable String nodeName) {
+        try {
+            // 1. 获取该节点部署后的物理路径
+            File nodeDir = powerShellService.getNodeBuildDirectory(nodeName);
+
+            // 2. 检查文件夹是否存在（即管理员是否已执行 deployNodes）
+            if (!nodeDir.exists() || !nodeDir.isDirectory()) {
+                Map<String, Object> error = new HashMap<>();
+                error.put("success", false);
+                error.put("message", "节点文件尚未生成。请联系管理员执行‘部署网络’操作，或稍后再试。");
+                return ResponseEntity.status(HttpStatus.ACCEPTED).body(error); // 202 Accepted 表示请求已收到但处理未完成
+            }
+
+            // 3. 创建临时 Zip 文件 (Java 临时文件机制是跨平台的)
+            Path tempZip = Files.createTempFile("corda-node-" + nodeDir.getName(), ".zip");
+            
+            // 4. 执行压缩逻辑
+            zipDirectory(nodeDir.toPath(), tempZip);
+
+            // 5. 构建响应流
+            Resource resource = new FileSystemResource(tempZip.toFile());
+            
+            // 设置下载头，适配各种浏览器
+            return ResponseEntity.ok()
+                    .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + nodeDir.getName() + ".zip\"")
+                    .contentType(MediaType.APPLICATION_OCTET_STREAM)
+                    .contentLength(tempZip.toFile().length())
+                    .body(resource);
+
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError()
+                    .body(Map.of("success", false, "message", "打包失败: " + e.getMessage()));
+        }
+    }
+
+    private void zipDirectory(Path sourcePath, Path zipPath) throws IOException {
+    try (ZipOutputStream zos = new ZipOutputStream(Files.newOutputStream(zipPath))) {
+        Files.walk(sourcePath).filter(path -> !Files.isDirectory(path)).forEach(path -> {
+            ZipEntry zipEntry = new ZipEntry(sourcePath.relativize(path).toString());
+            try {
+                zos.putNextEntry(zipEntry);
+                Files.copy(path, zos);
+                zos.closeEntry();
+            } catch (IOException e) {
+                throw new RuntimeException("压缩失败: " + path, e);
+            }
+        });
+    }
+}
 
     // ==================== 新增申请/审核接口 ====================
 
