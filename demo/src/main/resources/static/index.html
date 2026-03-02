@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>系统认证中心</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f4f7f6; display: flex; justify-content: center; padding: 40px; }
+        .container { width: 400px; background: white; padding: 30px; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
+        .tabs { display: flex; margin-bottom: 20px; border-bottom: 2px solid #eee; }
+        .tab { flex: 1; text-align: center; padding: 10px; cursor: pointer; color: #666; }
+        .tab.active { color: #2ecc71; border-bottom: 2px solid #2ecc71; font-weight: bold; }
+        .tab.admin.active { color: #e74c3c; border-bottom: 2px solid #e74c3c; }
+        
+        h2 { text-align: center; color: #333; margin-top: 0; }
+        input { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; }
+        button { width: 100%; padding: 12px; border: none; border-radius: 6px; cursor: pointer; font-size: 16px; transition: 0.3s; }
+        
+        .btn-user { background: #2ecc71; color: white; }
+        .btn-user:hover { background: #27ae60; }
+        .btn-admin { background: #e74c3c; color: white; }
+        .btn-admin:hover { background: #c0392b; }
+        
+        .switch-link { text-align: center; margin-top: 15px; font-size: 14px; color: #3498db; cursor: pointer; }
+        #message { margin-top: 20px; padding: 10px; border-radius: 4px; display: none; text-align: center; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="tabs">
+        <div id="tab-user" class="tab active" onclick="switchRole('USER')">普通用户</div>
+        <div id="tab-admin" class="tab" onclick="switchRole('ADMIN')">管理员</div>
+    </div>
+
+    <h2 id="form-title">用户登录</h2>
+    
+    <div id="auth-form">
+        <input type="text" id="username" placeholder="用户名">
+        <input type="password" id="password" placeholder="密码">
+        <div id="register-fields" style="display: none;">
+            <input type="email" id="email" placeholder="电子邮箱">
+            <input type="text" id="fullName" placeholder="全名">
+        </div>
+        
+        <button id="submit-btn" class="btn-user" onclick="handleSubmit()">立即登录</button>
+        <div class="switch-link" id="toggle-mode" onclick="toggleMode()">没有账号？去注册</div>
+    </div>
+
+    <div id="message"></div>
+</div>
+
+<script>
+    let currentRole = 'USER'; // USER 或 ADMIN
+    let isLoginMode = true;
+
+    function switchRole(role) {
+        currentRole = role;
+        document.getElementById('tab-user').classList.toggle('active', role === 'USER');
+        document.getElementById('tab-admin').classList.toggle('active', role === 'ADMIN');
+        
+        const btn = document.getElementById('submit-btn');
+        btn.className = role === 'USER' ? 'btn-user' : 'btn-admin';
+        updateUI();
+    }
+
+    function toggleMode() {
+        isLoginMode = !isLoginMode;
+        updateUI();
+    }
+
+    function updateUI() {
+        document.getElementById('form-title').innerText = (currentRole === 'USER' ? '用户' : '管理员') + (isLoginMode ? '登录' : '注册');
+        document.getElementById('register-fields').style.display = isLoginMode ? 'none' : 'block';
+        document.getElementById('submit-btn').innerText = isLoginMode ? '立即登录' : '提交注册';
+        document.getElementById('toggle-mode').innerText = isLoginMode ? '没有账号？去注册' : '已有账号？去登录';
+        hideMessage();
+    }
+
+    async function handleSubmit() {
+    const username = document.getElementById('username').value;
+    const password = document.getElementById('password').value;
+    const type = isLoginMode ? 'login' : 'register';
+    const rolePath = currentRole.toLowerCase();
+    const url = `/api/auth/${rolePath}/${type}`;
+
+    const data = { username, password };
+    if (!isLoginMode) {
+        data.email = document.getElementById('email').value;
+        data.fullName = document.getElementById('fullName').value;
+    }
+
+    try {
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        });
+        const result = await response.json();
+        
+        showMessage(result.message, result.success);
+        
+        if (result.success && isLoginMode) {
+            // 1. 将用户信息和角色存储到 localStorage (模拟 Token 存储)
+            localStorage.setItem('auth_username', result.username);
+            localStorage.setItem('auth_role', currentRole);
+            
+            // 2. 根据角色执行不同的跳转
+            setTimeout(() => {
+                if (currentRole === 'ADMIN') {
+                    window.location.href = '/admin-dashboard.html';
+                } else {
+                    window.location.href = '/user-dashboard.html';
+                }
+            }, 1000);
+        }
+    } catch (error) {
+        showMessage("连接服务器失败", false);
+    }
+}
+
+    function showMessage(text, isSuccess) {
+        const msgDiv = document.getElementById('message');
+        msgDiv.innerText = text;
+        msgDiv.style.display = 'block';
+        msgDiv.style.backgroundColor = isSuccess ? '#d4edda' : '#f8d7da';
+        msgDiv.style.color = isSuccess ? '#155724' : '#721c24';
+    }
+
+    function hideMessage() {
+        document.getElementById('message').style.display = 'none';
+    }
+</script>
+
+</body>
+</html>

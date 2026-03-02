@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>Corda 联盟链管理后台</title>
+    <style>
+        :root { --primary: #e74c3c; --dark: #2c3e50; --light: #ecf0f1; --success: #27ae60; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f4f7f6; margin: 0; padding: 20px; color: #333; }
+        .container { max-width: 1200px; margin: 0 auto; }
+        
+        /* 卡片样式 */
+        .card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); margin-bottom: 20px; border-top: 4px solid var(--primary); }
+        .header { display: flex; justify-content: space-between; align-items: center; }
+        
+        /* 状态标签 */
+        .badge { padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: bold; }
+        .badge-online { background: #d4edda; color: #155724; }
+        .badge-offline { background: #f8d7da; color: #721c24; }
+        
+        /* 按钮组 */
+        .btn-group { margin: 10px 0; display: flex; gap: 10px; }
+        button { padding: 8px 16px; border: none; border-radius: 4px; cursor: pointer; transition: 0.3s; font-weight: 500; }
+        .btn-primary { background: var(--primary); color: white; }
+        .btn-primary:hover { background: #c0392b; }
+        .btn-secondary { background: var(--dark); color: white; }
+        .btn-outline { border: 1px solid #ccc; background: white; }
+        .btn-danger { background: #ff4757; color: white; }
+        button:disabled { background: #ccc; cursor: not-allowed; }
+
+        /* 表格样式 */
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+        th, td { text-align: left; padding: 12px; border-bottom: 1px solid #eee; }
+        th { background: #f9f9f9; color: var(--dark); }
+        
+        /* 控制台输出模拟 */
+        #terminal { background: #1e1e1e; color: #00ff00; padding: 15px; border-radius: 4px; font-family: 'Courier New', monospace; font-size: 13px; max-height: 200px; overflow-y: auto; margin-top: 10px; display: none; }
+        
+        .section-title { border-left: 4px solid var(--primary); padding-left: 10px; margin-top: 30px; }
+        .loading-spinner { display: inline-block; width: 15px; height: 15px; border: 2px solid #f3f3f3; border-top: 2px solid var(--primary); border-radius: 50%; animation: spin 1s linear infinite; margin-right: 5px; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="header card">
+        <div>
+            <h1>Corda 联盟网络管理 <span class="badge" style="background:var(--dark); color:white;">Admin Mode</span></h1>
+            <p>欢迎回来，管理员: <strong id="admin-name">---</strong></p>
+        </div>
+        <button class="btn-outline" onclick="logout()">安全退出</button>
+    </div>
+
+    <div class="card">
+        <h3 class="section-title">系统构造与全局控制</h3>
+        <div id="config-status" style="margin-bottom: 15px; font-size: 14px;">
+            检测系统环境中...
+        </div>
+        <div class="btn-group">
+            <button class="btn-primary" onclick="globalAction('/api/nodes/deploy', '正在部署网络...')">部署网络 (Gradle)</button>
+            <button class="btn-primary" onclick="globalAction('/api/nodes/start-all', '正在启动所有节点...')">启动所有节点</button>
+            <button class="btn-secondary" onclick="checkSystemHealth()">刷新环境状态</button>
+        </div>
+        <div id="terminal"></div>
+    </div>
+
+    <div class="grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+        <div class="card">
+            <h3 class="section-title">待审核节点申请</h3>
+            <table>
+                <thead>
+                    <tr><th>申请组织</th><th>操作</th></tr>
+                </thead>
+                <tbody id="pending-list"></tbody>
+            </table>
+        </div>
+
+        <div class="card">
+            <h3 class="section-title">联盟节点列表</h3>
+            <div class="btn-group">
+                <button class="btn-outline" onclick="testConnectivity()">测试所有连接</button>
+            </div>
+            <table>
+                <thead>
+                    <tr><th>节点名称</th><th>状态</th><th>管理</th></tr>
+                </thead>
+                <tbody id="node-list"></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script>
+    // 安全校验
+    if (localStorage.getItem('auth_role') !== 'ADMIN') {
+        alert('权限不足');
+        window.location.href = '/index.html';
+    }
+    document.getElementById('admin-name').innerText = localStorage.getItem('auth_username');
+
+    // 页面加载初始化
+    window.onload = () => {
+        checkSystemHealth();
+        loadPendingApplications();
+        loadRegisteredNodes();
+    };
+
+    // 1. 系统环境检测
+    async function checkSystemHealth() {
+        const statusDiv = document.getElementById('config-status');
+        try {
+            const res = await fetch('/api/nodes/validate');
+            const data = await res.json();
+            if (data.valid) {
+                statusDiv.innerHTML = `<span style="color:var(--success)">● 环境就绪</span> (项目根目录: ${data.projectRoot})`;
+            } else {
+                statusDiv.innerHTML = `<span style="color:var(--primary)">● 配置异常</span>: 找不到 build.gradle 或部署脚本`;
+            }
+        } catch (e) {
+            statusDiv.innerHTML = `无法连接至后端服务`;
+        }
+    }
+
+    // 2. 全局网络操作 (部署/启动)
+    async function globalAction(url, msg) {
+        if (!confirm('确定要执行此全局操作吗？这可能需要较长时间。')) return;
+        const term = document.getElementById('terminal');
+        term.style.display = 'block';
+        term.innerHTML = `> ${msg}\n`;
+        
+        try {
+            const res = await fetch(url, { method: 'POST' });
+            const data = await res.json();
+            term.innerHTML += `> 执行结果: ${data.success ? '成功' : '失败'}\n`;
+            term.innerHTML += `> 输出:\n${data.output || data.message || data.error}`;
+            if (data.success) loadRegisteredNodes();
+        } catch (e) {
+            term.innerHTML += `> 请求异常: ${e.message}`;
+        }
+    }
+
+    // 3. 加载待审核申请 (NodeController)
+    async function loadPendingApplications() {
+        const res = await fetch('/api/nodes/applications/pending');
+        const result = await res.json();
+        const tbody = document.getElementById('pending-list');
+        tbody.innerHTML = result.data.length ? "" : "<tr><td colspan='2'>暂无申请</td></tr>";
+        
+        result.data.forEach(app => {
+            tbody.innerHTML += `
+                <tr>
+                    <td>O=${app.organization}</td>
+                    <td><button class="btn-primary" onclick="approveNode(${app.id})">审核通过</button></td>
+                </tr>`;
+        });
+    }
+
+    // 审批逻辑
+    async function approveNode(id) {
+        if(!confirm("确定批准并立即生成该节点的 Corda 配置文件吗？")) return;
+        const res = await fetch(`/api/nodes/approve/${id}`, { method: 'POST' });
+        const data = await res.json();
+        alert(data.message);
+        loadPendingApplications();
+        loadRegisteredNodes();
+    }
+
+    // 4. 管理已注册节点 (CordaController + NodeController)
+    async function loadRegisteredNodes() {
+        const res = await fetch('/api/nodes/list');
+        const data = await res.json();
+        const tbody = document.getElementById('node-list');
+        tbody.innerHTML = "";
+
+        data.nodeDetails.forEach(node => {
+            tbody.innerHTML += `
+                <tr>
+                    <td>${node.name}</td>
+                    <td id="status-${node.id}"><span class="badge">未知</span></td>
+                    <td>
+                        <button class="btn-outline" onclick="viewNodeInfo('${node.name}')">详情</button>
+                        <button class="btn-danger" onclick="stopNode('${node.name}')">停止</button>
+                    </td>
+                </tr>`;
+        });
+    }
+
+    // 测试节点连接性 (CordaController.testAllNodes)
+    async function testConnectivity() {
+        try {
+            const res = await fetch('/api/corda/test-all-nodes');
+            const data = await res.json();
+            // 假设 nodeDetails 中的 ID 与返回 key 对应
+            // 简单处理：遍历返回的 map
+            for (let name in data) {
+                const nodeInfo = data[name];
+                const cells = document.querySelectorAll('#node-list tr');
+                cells.forEach(row => {
+                    if (row.cells[0].innerText === name) {
+                        const statusCell = row.cells[1];
+                        if (nodeInfo.status === 'connected') {
+                            statusCell.innerHTML = `<span class="badge badge-online">在线</span>`;
+                        } else {
+                            statusCell.innerHTML = `<span class="badge badge-offline">离线</span>`;
+                        }
+                    }
+                });
+            }
+        } catch (e) {
+            console.error("连接测试失败", e);
+        }
+    }
+
+    // 查看节点详情
+    async function viewNodeInfo(name) {
+        const res = await fetch(`/api/corda/${name}/info`);
+        const data = await res.json();
+        if (res.ok) {
+            alert(`节点详情 [${name}]:\n身份: ${data.identity}\n状态: ${data.status}\n对等节点: ${data.peers}`);
+        } else {
+            alert(`无法获取节点信息，节点可能未启动。\n错误: ${data.error}`);
+        }
+    }
+
+    // 停止节点
+    async function stopNode(name) {
+        if (!confirm(`确定停止节点 ${name} 吗？`)) return;
+        const res = await fetch('/api/nodes/stop', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ nodeName: name })
+        });
+        const data = await res.json();
+        alert(data.message);
+        testConnectivity();
+    }
+
+    function logout() {
+        localStorage.clear();
+        window.location.href = '/index.html';
+    }
+</script>
+</body>
+</html>
