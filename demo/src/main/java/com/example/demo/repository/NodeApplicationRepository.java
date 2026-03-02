@@ -18,4 +18,9 @@ public interface NodeApplicationRepository extends JpaRepository<NodeApplication
      * 根据状态查询申请列表
      */
     List<NodeApplication> findByStatus(String status);
+
+    /**
+     * 根据申请人用户名查询所有申请记录（新增方法，用于用户个人中心）
+     */
+    List<NodeApplication> findByApplicant(String applicant);
 }

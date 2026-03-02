@@ -370,19 +370,19 @@ public class NodeController {
     }
 
     private void zipDirectory(Path sourcePath, Path zipPath) throws IOException {
-    try (ZipOutputStream zos = new ZipOutputStream(Files.newOutputStream(zipPath))) {
-        Files.walk(sourcePath).filter(path -> !Files.isDirectory(path)).forEach(path -> {
-            ZipEntry zipEntry = new ZipEntry(sourcePath.relativize(path).toString());
-            try {
-                zos.putNextEntry(zipEntry);
-                Files.copy(path, zos);
-                zos.closeEntry();
-            } catch (IOException e) {
-                throw new RuntimeException("压缩失败: " + path, e);
-            }
-        });
+        try (ZipOutputStream zos = new ZipOutputStream(Files.newOutputStream(zipPath))) {
+            Files.walk(sourcePath).filter(path -> !Files.isDirectory(path)).forEach(path -> {
+                ZipEntry zipEntry = new ZipEntry(sourcePath.relativize(path).toString());
+                try {
+                    zos.putNextEntry(zipEntry);
+                    Files.copy(path, zos);
+                    zos.closeEntry();
+                } catch (IOException e) {
+                    throw new RuntimeException("压缩失败: " + path, e);
+                }
+            });
+        }
     }
-}
 
     // ==================== 新增申请/审核接口 ====================
 
@@ -494,6 +494,24 @@ public class NodeController {
         } catch (Exception e) {
             response.put("success", false);
             response.put("message", "获取待审核列表失败: " + e.getMessage());
+        }
+        return response;
+    }
+
+    /**
+     * 新增接口：获取当前用户的所有申请记录（包括审批中和已通过）
+     */
+    @GetMapping("/applications/my")
+    public Map<String, Object> getMyApplications(@RequestParam String username) {
+        Map<String, Object> response = new HashMap<>();
+        try {
+            // 直接根据申请人查询数据库
+            List<NodeApplication> apps = nodeApplicationRepository.findByApplicant(username);
+            response.put("success", true);
+            response.put("data", apps);
+        } catch (Exception e) {
+            response.put("success", false);
+            response.put("message", "获取列表失败: " + e.getMessage());
         }
         return response;
     }

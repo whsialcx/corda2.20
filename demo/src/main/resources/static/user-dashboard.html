@@ -2,229 +2,206 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <title>Corda 用户工作台</title>
+    <title>Corda 用户工作台 - 多节点管理</title>
     <style>
-        :root { --primary: #2ecc71; --dark: #2c3e50; --light: #f8f9fa; --danger: #e74c3c; }
+        :root { --primary: #2ecc71; --dark: #2c3e50; --light: #f8f9fa; --danger: #e74c3c; --warning: #f1c40f; }
         body { font-family: 'Segoe UI', system-ui, sans-serif; background: #e8f5e9; margin: 0; padding: 20px; color: #333; }
-        .container { max-width: 1000px; margin: 0 auto; }
-        
-        /* 卡片与布局 */
+        .container { max-width: 1100px; margin: 0 auto; }
         .card { background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); margin-bottom: 20px; }
-        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
-        .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 3px solid var(--primary); padding-bottom: 15px; }
-
-        /* 表单与输入 */
-        .form-group { margin-bottom: 15px; }
-        label { display: block; margin-bottom: 5px; font-weight: bold; font-size: 0.9em; }
-        input, select { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; }
         
-        /* 按钮样式 */
-        button { padding: 10px 20px; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; transition: 0.2s; }
-        .btn-main { background: var(--primary); color: white; width: 100%; }
-        .btn-main:hover { background: #27ae60; }
-        .btn-outline { background: transparent; border: 1.5px solid var(--primary); color: var(--primary); }
-        .btn-download { background: var(--dark); color: white; margin-top: 10px; display: none; }
-        .btn-logout { background: #95a5a6; color: white; }
-
-        /* 状态显示 */
-        .status-bar { display: flex; align-items: center; gap: 10px; margin-top: 10px; font-size: 0.9em; }
-        .dot { height: 10px; width: 10px; border-radius: 50%; display: inline-block; }
-        .dot-online { background: var(--primary); box-shadow: 0 0 8px var(--primary); }
-        .dot-offline { background: var(--danger); }
+        /* 表格样式 */
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+        th, td { text-align: left; padding: 12px; border-bottom: 1px solid #eee; }
+        th { background: #f9f9f9; font-size: 0.9em; color: #666; }
         
-        /* 列表展示 */
-        .data-list { max-height: 200px; overflow-y: auto; background: #fdfdfd; border: 1px solid #eee; padding: 10px; border-radius: 6px; font-size: 0.85em; }
-        .data-item { padding: 8px; border-bottom: 1px solid #f0f0f0; display: flex; justify-content: space-between; }
+        /* 状态标签 */
+        .status-badge { padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: bold; }
+        .status-pending { background: #fff3cd; color: #856404; }
+        .status-active { background: #d4edda; color: #155724; }
+        
+        /* 按钮 */
+        button { padding: 8px 15px; border: none; border-radius: 6px; cursor: pointer; transition: 0.2s; }
+        .btn-main { background: var(--primary); color: white; }
+        .btn-sm { padding: 4px 8px; font-size: 12px; background: var(--dark); color: white; margin-right: 5px; }
+        .btn-outline { background: white; border: 1px solid #ddd; }
+        .btn-outline:hover { background: #f5f5f5; }
+
+        .form-inline { display: flex; gap: 10px; align-items: flex-end; margin-bottom: 20px; }
+        .form-group { flex: 1; }
+        label { display: block; margin-bottom: 5px; font-size: 0.85em; font-weight: bold; }
+        input { width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <div class="card header">
+    <div class="card" style="display: flex; justify-content: space-between; align-items: center;">
+        <h2>Corda 联盟链参与者面板</h2>
         <div>
-            <h1>欢迎, <span id="user-display">---</span></h1>
-            <p style="margin:0; color:#666;">Corda 分布式协作平台</p>
+            <span>当前用户: <strong id="user-display">---</strong></span>
+            <button class="btn-outline" onclick="logout()" style="margin-left:15px;">退出</button>
         </div>
-        <button class="btn-logout" onclick="logout()">安全退出</button>
     </div>
 
-    <div class="grid">
-        <div class="card">
-            <h3>🛡️ 节点准入申请</h3>
-            <div id="apply-section">
-                <div class="form-group">
-                    <label>组织名称 (Organization)</label>
-                    <input type="text" id="node-o" placeholder="例如: BankA">
-                </div>
-                <div class="form-group">
-                    <label>所在城市 (Locality)</label>
-                    <input type="text" id="node-l" placeholder="例如: Shanghai">
-                </div>
-                <div class="form-group">
-                    <label>国家代码 (Country)</label>
-                    <input type="text" id="node-c" placeholder="例如: CN">
-                </div>
-                <button class="btn-main" id="submit-apply-btn" onclick="applyNode()">提交申请</button>
+    <div class="card">
+        <h3>申请新节点</h3>
+        <div class="form-inline">
+            <div class="form-group">
+                <label>组织 (O)</label>
+                <input type="text" id="node-o" placeholder="如: MyBank">
             </div>
-            
-            <div id="node-info-section" style="display:none; border-top: 1px solid #eee; margin-top: 20px; padding-top: 10px;">
-                <p><strong>我的节点:</strong> <span id="my-node-name">---</span></p>
-                <div class="status-bar">
-                    <span id="status-dot" class="dot dot-offline"></span>
-                    <span id="status-text">检测中...</span>
-                    <button class="btn-outline" style="padding: 2px 8px; font-size: 10px;" onclick="checkMyNodeStatus()">刷新</button>
-                </div>
-                <button class="btn-download" id="download-btn" onclick="downloadMyNode()">📦 下载节点安装包 (Zip)</button>
+            <div class="form-group">
+                <label>城市 (L)</label>
+                <input type="text" id="node-l" placeholder="如: Beijing">
             </div>
+            <div class="form-group">
+                <label>国家 (C)</label>
+                <input type="text" id="node-c" placeholder="如: CN">
+            </div>
+            <button class="btn-main" onclick="applyNode()">提交申请</button>
         </div>
+    </div>
 
-        <div class="card">
-            <h3>💼 账本业务操作</h3>
-            <div id="business-overlay" style="color:#999; text-align:center; padding-top:50px;">
-                <p>节点启动后即可进行业务操作</p>
-            </div>
-            
-            <div id="business-section" style="display:none;">
-                <div style="margin-bottom: 20px;">
-                    <label>创建借据 (IOU)</label>
-                    <div style="display: flex; gap: 5px;">
-                        <input type="number" id="iou-val" placeholder="金额">
-                        <input type="text" id="iou-to" placeholder="接收方 O">
-                        <button class="btn-outline" onclick="createIOU()">发送</button>
-                    </div>
-                </div>
-
-                <div style="margin-bottom: 10px;">
-                    <label>上报传感器数据</label>
-                    <div style="display: flex; gap: 5px;">
-                        <input type="number" id="temp-val" placeholder="温度">
-                        <button class="btn-outline" onclick="recordTemp()">记录</button>
-                    </div>
-                </div>
-
-                <label>我的账本状态:</label>
-                <div class="data-list" id="vault-data">
-                    <div class="data-item">暂无数据</div>
-                </div>
-            </div>
-        </div>
+    <div class="card">
+        <h3>我的申请与节点列表</h3>
+        <table id="my-nodes-table">
+            <thead>
+                <tr>
+                    <th>节点 X.500 名称</th>
+                    <th>状态</th>
+                    <th>RPC 连通性</th>
+                    <th>操作</th>
+                </tr>
+            </thead>
+            <tbody id="my-nodes-list">
+                <tr><td colspan="4" style="text-align:center;">加载中...</td></tr>
+            </tbody>
+        </table>
     </div>
 </div>
 
 <script>
-    // 权限与基础信息
     const currentUser = localStorage.getItem('auth_username');
-    if (localStorage.getItem('auth_role') !== 'USER') window.location.href = '/index.html';
+    if (!currentUser) window.location.href = '/index.html';
     document.getElementById('user-display').innerText = currentUser;
 
-    let myFullX500 = ""; // 存储完整的 X.500 名称
-
-    window.onload = async () => {
-        await checkExistingNode();
+    window.onload = () => {
+        loadMyData();
     };
 
-    // 1. 检查是否已有节点 (利用 NodeController.list)
-    async function checkExistingNode() {
+    // 修改后的 loadMyData 函数：直接调用新接口获取当前用户的所有申请记录
+    async function loadMyData() {
+        const tbody = document.getElementById('my-nodes-list');
         try {
-            const res = await fetch('/api/nodes/list');
-            const data = await res.json();
-            // 假设数据库中 nodeDetails 存储了申请人信息 (需要后端支持过滤，此处演示前端匹配)
-            // 实际开发中建议后端提供 /api/nodes/my 接口
-            const myNode = data.nodeDetails.find(n => n.name.includes(`O=${currentUser}`)); 
-            
-            if (myNode) {
-                myFullX500 = myNode.name;
-                showNodeSection(myNode.name);
-                checkMyNodeStatus();
+            // 调用新增的后端接口，传入当前用户名
+            const res = await fetch(`/api/nodes/applications/my?username=${currentUser}`);
+            const result = await res.json();
+
+            if (result.success) {
+                tbody.innerHTML = "";
+                const apps = result.data;
+
+                if (apps.length === 0) {
+                    tbody.innerHTML = "<tr><td colspan='4' style='text-align:center;'>您尚未申请任何节点</td></tr>";
+                    return;
+                }
+
+                apps.forEach(app => {
+                    // 组装完整的 X.500 名称（用于显示和后续操作）
+                    const x500Name = `O=${app.organization}, L=${app.locality}, C=${app.country}`;
+                    let statusHtml = "";
+                    let actionsHtml = "";
+                    let rpcId = `rpc-${app.id}`;
+
+                    // 根据数据库中的 status 字段决定显示内容
+                    if (app.status === 'PENDING') {
+                        statusHtml = `<span class="status-badge status-pending">审批中</span>`;
+                        actionsHtml = `<small style="color:#999">请等待管理员审批</small>`;
+                    } else if (app.status === 'APPROVED') {
+                        statusHtml = `<span class="status-badge status-active">已通过</span>`;
+                        // 已通过的节点显示下载按钮（未来可扩展其他操作）
+                        actionsHtml = `<button class="btn-sm" onclick="downloadNode('${x500Name}')">下载安装包</button>`;
+                    }
+
+                    // 插入行
+                    tbody.innerHTML += `
+                        <tr>
+                            <td>${x500Name}</td>
+                            <td>${statusHtml}</td>
+                            <td id="${rpcId}">--</td>
+                            <td>${actionsHtml}</td>
+                        </tr>
+                    `;
+
+                    // 如果节点已通过，检测其 RPC 连通性
+                    if (app.status === 'APPROVED') {
+                        checkNodeStatus(x500Name, rpcId);
+                    }
+                });
+            } else {
+                tbody.innerHTML = `<tr><td colspan='4' style='text-align:center;color:red;'>加载失败: ${result.message}</td></tr>`;
             }
-        } catch (e) { console.error("获取节点列表失败", e); }
+        } catch (e) {
+            console.error("加载列表失败", e);
+            tbody.innerHTML = "<tr><td colspan='4' style='text-align:center;color:red;'>服务连接失败</td></tr>";
+        }
     }
 
-    function showNodeSection(name) {
-        document.getElementById('apply-section').style.opacity = "0.5";
-        document.getElementById('submit-apply-btn').disabled = true;
-        document.getElementById('submit-apply-btn').innerText = "已拥有节点";
-        document.getElementById('node-info-section').style.display = "block";
-        document.getElementById('my-node-name').innerText = name;
-        document.getElementById('download-btn').style.display = "block";
-    }
-
-    // 2. 提交申请 (NodeController.apply)
+    // 申请新节点
     async function applyNode() {
         const o = document.getElementById('node-o').value.trim();
         const l = document.getElementById('node-l').value.trim();
         const c = document.getElementById('node-c').value.trim();
         
+        if(!o || !l || !c) return alert("请完整填写信息");
+
         const res = await fetch('/api/nodes/apply', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ o, l, c, applicant: currentUser })
         });
         const result = await res.json();
-        alert(result.message);
-        if(result.success) location.reload();
+        if(result.success || res.ok) {
+            alert("申请提交成功！");
+            // 清空输入框
+            document.getElementById('node-o').value = '';
+            document.getElementById('node-l').value = '';
+            document.getElementById('node-c').value = '';
+            // 刷新列表
+            loadMyData();
+        } else {
+            alert("申请失败: " + (result.message || "未知错误"));
+        }
     }
 
-    // 3. 下载节点包 (NodeController.download)
-    function downloadMyNode() {
-        // 直接跳转浏览器下载流
-        window.location.href = `/api/nodes/download/${myFullX500}`;
-    }
-
-    // 4. 检查节点在线状态 (CordaController.status)
-    async function checkMyNodeStatus() {
-        const dot = document.getElementById('status-dot');
-        const text = document.getElementById('status-text');
-        
+    // 检测连通性
+    async function checkNodeStatus(name, elementId) {
         try {
-            const res = await fetch(`/api/corda/${myFullX500}/status`);
+            const res = await fetch(`/api/corda/${encodeURIComponent(name)}/status`);
             const data = await res.json();
-            
-            if (res.ok && data.status === 200) {
-                dot.className = "dot dot-online";
-                text.innerText = "在线 (RPC 已连接)";
-                document.getElementById('business-overlay').style.display = "none";
-                document.getElementById('business-section').style.display = "block";
-                loadVaultData();
-            } else {
-                throw new Error();
+            const el = document.getElementById(elementId);
+            if (el) {
+                if(res.ok && data.status === 200) {
+                    el.innerHTML = `<b style="color:var(--primary)">● 在线</b>`;
+                } else {
+                    el.innerHTML = `<span style="color:var(--danger)">● 离线</span>`;
+                }
             }
         } catch (e) {
-            dot.className = "dot dot-offline";
-            text.innerText = "离线 (请管理员启动节点)";
+            const el = document.getElementById(elementId);
+            if (el) el.innerHTML = `<span style="color:var(--danger)">● 离线</span>`;
         }
     }
 
-    // 5. 业务操作：创建 IOU
-    async function createIOU() {
-        const val = document.getElementById('iou-val').value;
-        const to = document.getElementById('iou-to').value;
-        const res = await fetch(`/api/corda/${myFullX500}/create-iou?iouValue=${val}&partyName=O=${to},L=London,C=GB`, { method: 'POST' });
-        const data = await res.json();
-        alert(data.response || data.error);
-        loadVaultData();
+    // 下载
+    function downloadNode(name) {
+        window.location.href = `/api/nodes/download/${encodeURIComponent(name)}`;
     }
 
-    // 6. 获取账本数据
-    async function loadVaultData() {
-        const list = document.getElementById('vault-data');
-        try {
-            const res = await fetch(`/api/corda/${myFullX500}/my-ious`);
-            const data = await res.json();
-            const ious = JSON.parse(data.response); // 假设返回的是 JSON 字符串
-            
-            list.innerHTML = ious.map(i => `
-                <div class="data-item">
-                    <span>ID: ${i.linearId.id.substring(0,8)}...</span>
-                    <span style="color:var(--primary)">$${i.value}</span>
-                </div>
-            `).join('') || "暂无借据记录";
-        } catch (e) {
-            list.innerHTML = "无法解析账本数据";
-        }
+    function logout() { 
+        localStorage.clear(); 
+        window.location.href = '/index.html'; 
     }
-
-    function logout() { localStorage.clear(); window.location.href = '/index.html'; }
 </script>
 </body>
 </html>
