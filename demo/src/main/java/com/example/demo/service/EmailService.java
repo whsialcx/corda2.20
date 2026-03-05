@@ -36,4 +36,22 @@ public class EmailService {
         message.setText(content);
         mailSender.send(message);
     }
+    
+    public void sendApplicationRejectEmail(String userEmail, String organization, String reason) {
+        SimpleMailMessage message = new SimpleMailMessage();
+        message.setFrom(fromEmail);
+        message.setTo(userEmail);
+        message.setSubject("【系统通知】您的节点申请未通过审核");
+
+        String content = "您好：\n\n" +
+                        "您为组织 [" + organization + "] 提交的节点申请未通过审核。\n" +
+                        "未通过原因如下：\n" +
+                        "----------------------\n" +
+                        reason + "\n" +
+                        "----------------------\n" +
+                        "如有疑问，请咨询系统管理员。";
+
+        message.setText(content);
+        mailSender.send(message);
+    }
 }

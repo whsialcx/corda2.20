@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <title>Corda 联盟链管理后台</title>
+    <title>Corda 联盟链管理后台 · 增强版</title>
     <style>
         :root { --primary: #e74c3c; --dark: #2c3e50; --light: #ecf0f1; --success: #27ae60; }
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f4f7f6; margin: 0; padding: 20px; color: #333; }
@@ -18,13 +18,16 @@
         .badge-offline { background: #f8d7da; color: #721c24; }
         
         /* 按钮组 */
-        .btn-group { margin: 10px 0; display: flex; gap: 10px; }
+        .btn-group { margin: 10px 0; display: flex; gap: 10px; flex-wrap: wrap; }
         button { padding: 8px 16px; border: none; border-radius: 4px; cursor: pointer; transition: 0.3s; font-weight: 500; }
         .btn-primary { background: var(--primary); color: white; }
         .btn-primary:hover { background: #c0392b; }
         .btn-secondary { background: var(--dark); color: white; }
         .btn-outline { border: 1px solid #ccc; background: white; }
         .btn-danger { background: #ff4757; color: white; }
+        .btn-danger:hover { background: #e03e4e; }
+        .btn-success { background: #27ae60; color: white; }  /* 新增通过按钮专用色 */
+        .btn-success:hover { background: #1e8e4e; }
         button:disabled { background: #ccc; cursor: not-allowed; }
 
         /* 表格样式 */
@@ -65,13 +68,20 @@
     </div>
 
     <div class="grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+        <!-- 待审核节点申请卡片 (已修改：增加申请人、申请时间列及拒绝按钮) -->
         <div class="card">
             <h3 class="section-title">待审核节点申请</h3>
             <table>
                 <thead>
-                    <tr><th>申请组织</th><th>操作</th></tr>
+                    <tr>
+                        <th>申请组织 / 申请人</th>
+                        <th>申请时间</th>
+                        <th>操作</th>
+                    </tr>
                 </thead>
-                <tbody id="pending-list"></tbody>
+                <tbody id="pending-list">
+                    <!-- 动态渲染：通过/拒绝按钮 -->
+                </tbody>
             </table>
         </div>
 
@@ -92,36 +102,39 @@
 
 <script>
     // 安全校验
-    if (localStorage.getItem('auth_role') !== 'ADMIN') {
-        alert('权限不足');
-        window.location.href = '/index.html';
-    }
-    document.getElementById('admin-name').innerText = localStorage.getItem('auth_username');
+    (function() {
+        if (localStorage.getItem('auth_role') !== 'ADMIN') {
+            alert('权限不足，请以管理员身份登录');
+            window.location.href = '/index.html';
+        }
+        document.getElementById('admin-name').innerText = localStorage.getItem('auth_username') || '管理员';
+    })();
 
     // 页面加载初始化
     window.onload = () => {
         checkSystemHealth();
-        loadPendingApplications();
+        loadPendingApplications();   // 加载待审核 (已改造)
         loadRegisteredNodes();
     };
 
-    // 1. 系统环境检测
+    // ------------------------------------------------------------
+    // 1. 系统环境检测 (不变)
     async function checkSystemHealth() {
         const statusDiv = document.getElementById('config-status');
         try {
             const res = await fetch('/api/nodes/validate');
             const data = await res.json();
             if (data.valid) {
-                statusDiv.innerHTML = `<span style="color:var(--success)">● 环境就绪</span> (项目根目录: ${data.projectRoot})`;
+                statusDiv.innerHTML = `<span style="color:var(--success)">● 环境就绪</span> (项目根目录: ${data.projectRoot || '未知'})`;
             } else {
                 statusDiv.innerHTML = `<span style="color:var(--primary)">● 配置异常</span>: 找不到 build.gradle 或部署脚本`;
             }
         } catch (e) {
-            statusDiv.innerHTML = `无法连接至后端服务`;
+            statusDiv.innerHTML = `无法连接至后端服务 (${e.message})`;
         }
     }
 
-    // 2. 全局网络操作 (部署/启动)
+    // 2. 全局网络操作 (不变)
     async function globalAction(url, msg) {
         if (!confirm('确定要执行此全局操作吗？这可能需要较长时间。')) return;
         const term = document.getElementById('terminal');
@@ -132,71 +145,138 @@
             const res = await fetch(url, { method: 'POST' });
             const data = await res.json();
             term.innerHTML += `> 执行结果: ${data.success ? '成功' : '失败'}\n`;
-            term.innerHTML += `> 输出:\n${data.output || data.message || data.error}`;
+            term.innerHTML += `> 输出:\n${data.output || data.message || data.error || '无详细输出'}`;
             if (data.success) loadRegisteredNodes();
         } catch (e) {
             term.innerHTML += `> 请求异常: ${e.message}`;
         }
     }
 
-    // 3. 加载待审核申请 (NodeController)
+    // ------------------------------------------------------------
+    // 3. 加载待审核申请 (已按需求改造：显示申请人、申请时间，增加拒绝按钮)
     async function loadPendingApplications() {
-        const res = await fetch('/api/nodes/applications/pending');
-        const result = await res.json();
         const tbody = document.getElementById('pending-list');
-        tbody.innerHTML = result.data.length ? "" : "<tr><td colspan='2'>暂无申请</td></tr>";
-        
-        result.data.forEach(app => {
-            tbody.innerHTML += `
-                <tr>
-                    <td>O=${app.organization}</td>
-                    <td><button class="btn-primary" onclick="approveNode(${app.id})">审核通过</button></td>
-                </tr>`;
-        });
+        try {
+            const res = await fetch('/api/nodes/applications/pending');
+            const result = await res.json();
+            
+            // 假设返回格式 { success: true, data: [ { id, organization, applicant, applyTime, ... } ] }
+            const apps = result.data || [];
+            
+            if (apps.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="3" style="text-align:center; color:#999;">暂无待审核申请</td></tr>`;
+                return;
+            }
+
+            let htmlStr = '';
+            apps.forEach(app => {
+                // 兼容字段缺失的情况
+                const orgDisplay = app.organization || '未知组织';
+                const applicantDisplay = app.applicant || '未知申请人';
+                const timeDisplay = app.applyTime ? new Date(app.applyTime).toLocaleString() : '时间未记录';
+                const appId = app.id;
+
+                htmlStr += `
+                    <tr>
+                        <td>${orgDisplay}<br><small style="color:#666;">申请人: ${applicantDisplay}</small></td>
+                        <td>${timeDisplay}</td>
+                        <td>
+                            <button class="btn-success" onclick="approveNode(${appId})">通过</button>
+                            <button class="btn-danger" style="margin-left:5px;" onclick="rejectApp(${appId})">不通过</button>
+                        </td>
+                    </tr>
+                `;
+            });
+            tbody.innerHTML = htmlStr;
+        } catch (e) {
+            tbody.innerHTML = `<tr><td colspan="3" style="color:red;">加载失败: ${e.message}</td></tr>`;
+        }
     }
 
-    // 审批逻辑
+    // 审批通过 (调用原有接口，保持不变，但增加刷新待审核列表)
     async function approveNode(id) {
         if(!confirm("确定批准并立即生成该节点的 Corda 配置文件吗？")) return;
-        const res = await fetch(`/api/nodes/approve/${id}`, { method: 'POST' });
-        const data = await res.json();
-        alert(data.message);
-        loadPendingApplications();
-        loadRegisteredNodes();
+        try {
+            const res = await fetch(`/api/nodes/approve/${id}`, { method: 'POST' });
+            const data = await res.json();
+            alert(data.message || '操作完成');
+            // 刷新两个表格
+            loadPendingApplications();
+            loadRegisteredNodes();
+        } catch (e) {
+            alert(`审批请求异常: ${e.message}`);
+        }
     }
 
-    // 4. 管理已注册节点 (CordaController + NodeController)
+    // 新增：拒绝申请，带原因输入框
+    async function rejectApp(id) {
+        const reason = prompt("请输入拒绝该申请的原因（必填）：");
+        if (reason === null) return; // 用户取消
+        if (reason.trim() === "") {
+            alert("拒绝原因不能为空，请重新操作。");
+            return;
+        }
+
+        try {
+            const res = await fetch('/api/nodes/applications/reject', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                    id: id, 
+                    reason: reason.trim() 
+                })
+            });
+            
+            const data = await res.json();
+            if (data.success) {
+                alert(data.message || '已拒绝该申请');
+                // 只刷新待审核列表，节点列表不变
+                loadPendingApplications();
+            } else {
+                alert("错误: " + (data.message || '操作失败'));
+            }
+        } catch (e) {
+            alert("网络异常，请稍后再试: " + e.message);
+        }
+    }
+
+    // ------------------------------------------------------------
+    // 4. 管理已注册节点 (保持原样，但确保与现有逻辑兼容)
     async function loadRegisteredNodes() {
-        const res = await fetch('/api/nodes/list');
-        const data = await res.json();
-        const tbody = document.getElementById('node-list');
-        tbody.innerHTML = "";
+        try {
+            const res = await fetch('/api/nodes/list');
+            const data = await res.json();
+            const tbody = document.getElementById('node-list');
+            tbody.innerHTML = "";
 
-        data.nodeDetails.forEach(node => {
-            tbody.innerHTML += `
-                <tr>
-                    <td>${node.name}</td>
-                    <td id="status-${node.id}"><span class="badge">未知</span></td>
-                    <td>
-                        <button class="btn-outline" onclick="viewNodeInfo('${node.name}')">详情</button>
-                        <button class="btn-danger" onclick="stopNode('${node.name}')">停止</button>
-                    </td>
-                </tr>`;
-        });
+            // 假设返回 { nodeDetails: [ { id, name }, ... ] }
+            (data.nodeDetails || []).forEach(node => {
+                tbody.innerHTML += `
+                    <tr>
+                        <td>${node.name}</td>
+                        <td id="status-${node.id}"><span class="badge">未知</span></td>
+                        <td>
+                            <button class="btn-outline" onclick="viewNodeInfo('${node.name}')">详情</button>
+                            <button class="btn-danger" onclick="stopNode('${node.name}')">停止</button>
+                        </td>
+                    </tr>`;
+            });
+        } catch (e) {
+            console.error("加载节点列表失败", e);
+        }
     }
 
-    // 测试节点连接性 (CordaController.testAllNodes)
+    // 测试节点连接性 (原逻辑，通过节点名称匹配更新状态)
     async function testConnectivity() {
         try {
             const res = await fetch('/api/corda/test-all-nodes');
             const data = await res.json();
-            // 假设 nodeDetails 中的 ID 与返回 key 对应
-            // 简单处理：遍历返回的 map
+            // data 格式: { "节点名": { status: "connected" / "offline" } }
             for (let name in data) {
                 const nodeInfo = data[name];
-                const cells = document.querySelectorAll('#node-list tr');
-                cells.forEach(row => {
-                    if (row.cells[0].innerText === name) {
+                const rows = document.querySelectorAll('#node-list tr');
+                rows.forEach(row => {
+                    if (row.cells[0] && row.cells[0].innerText === name) {
                         const statusCell = row.cells[1];
                         if (nodeInfo.status === 'connected') {
                             statusCell.innerHTML = `<span class="badge badge-online">在线</span>`;
@@ -213,28 +293,37 @@
 
     // 查看节点详情
     async function viewNodeInfo(name) {
-        const res = await fetch(`/api/corda/${name}/info`);
-        const data = await res.json();
-        if (res.ok) {
-            alert(`节点详情 [${name}]:\n身份: ${data.identity}\n状态: ${data.status}\n对等节点: ${data.peers}`);
-        } else {
-            alert(`无法获取节点信息，节点可能未启动。\n错误: ${data.error}`);
+        try {
+            const res = await fetch(`/api/corda/${name}/info`);
+            const data = await res.json();
+            if (res.ok) {
+                alert(`节点详情 [${name}]:\n身份: ${data.identity}\n状态: ${data.status}\n对等节点: ${data.peers || '无'}`);
+            } else {
+                alert(`无法获取节点信息，节点可能未启动。\n错误: ${data.error}`);
+            }
+        } catch (e) {
+            alert(`请求失败: ${e.message}`);
         }
     }
 
     // 停止节点
     async function stopNode(name) {
         if (!confirm(`确定停止节点 ${name} 吗？`)) return;
-        const res = await fetch('/api/nodes/stop', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ nodeName: name })
-        });
-        const data = await res.json();
-        alert(data.message);
-        testConnectivity();
+        try {
+            const res = await fetch('/api/nodes/stop', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ nodeName: name })
+            });
+            const data = await res.json();
+            alert(data.message || '操作已执行');
+            testConnectivity(); // 刷新状态
+        } catch (e) {
+            alert(`停止节点失败: ${e.message}`);
+        }
     }
 
+    // 登出
     function logout() {
         localStorage.clear();
         window.location.href = '/index.html';
