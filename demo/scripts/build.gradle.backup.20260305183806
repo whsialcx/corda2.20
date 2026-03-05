@@ -155,7 +155,6 @@ task copyDriversToNodes(type: Copy) {
     into file("${buildDir}/nodes/PartyA/drivers")
     into file("${buildDir}/nodes/PartyE/drivers")
     into file("${buildDir}/nodes/PartyTest/drivers")
-    into file("${buildDir}/nodes/Mybank/drivers")
 }
 
 //Task to deploy the nodes in order to bootstrap a network
@@ -249,23 +248,6 @@ task deployNodes(type: net.corda.plugins.Cordform, dependsOn: ['jar']) {
                  dataSourceClassName: "org.postgresql.ds.PGSimpleDataSource",
                  "dataSource.url": "jdbc:postgresql://172.18.44.66:5432/corda_party_t",
                  "dataSource.user": "user_t",
-                 "dataSource.password": "123456"
-             ]
-        ]
-    }
-    node {
-        name "O=Mybank,L=Beijing,C=CN"
-        p2pAddress "172.18.44.66:10015"
-        rpcSettings {
-            address("172.18.44.66:10016")
-            adminAddress("172.18.44.66:10056")
-        }
-        rpcUsers = [[ user: "user1", "password": "test", "permissions": ["ALL"]]]
-        extraConfig = [
-             dataSourceProperties: [
-                 dataSourceClassName: "org.postgresql.ds.PGSimpleDataSource",
-                 "dataSource.url": "jdbc:postgresql://172.18.44.66:5432/corda_party_mybank",
-                 "dataSource.user": "user_mybank",
                  "dataSource.password": "123456"
              ]
         ]
