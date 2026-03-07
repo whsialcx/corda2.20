@@ -11,7 +11,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.core.io.Resource;
 import org.springframework.http.*;
-
+import org.springframework.http.HttpHeaders;
 import java.util.zip.*;
 
 import java.io.File;
@@ -512,40 +512,6 @@ public class NodeController {
         } catch (Exception e) {
             response.put("success", false);
             response.put("message", "获取列表失败: " + e.getMessage());
-        }
-        return response;
-    }
-
-    // 在 NodeController.java 中添加
-    @PostMapping("/applications/reject")
-    public Map<String, Object> rejectApplication(@RequestBody Map<String, String> request) {
-        Map<String, Object> response = new HashMap<>();
-        try {
-            Long applicationId = Long.valueOf(request.get("id"));
-            String reason = request.getOrDefault("reason", "未提供具体原因");
-
-            // 1. 查找申请记录
-            NodeApplication app = nodeApplicationRepository.findById(applicationId)
-                    .orElseThrow(() -> new RuntimeException("未找到该申请记录"));
-
-            // 2. 更新状态为 REJECTED
-            app.setStatus("REJECTED");
-            app.setReviewTime(LocalDateTime.now());
-            nodeApplicationRepository.save(app);
-
-            // 3. 查找申请人邮箱并发送通知
-            // 假设 NodeApplication 里的 applicant 存的是 username
-            userRepository.findByUsername(app.getApplicant()).ifPresent(user -> {
-                if (user.getEmail() != null) {
-                    emailService.sendApplicationRejectEmail(user.getEmail(), app.getOrganization(), reason);
-                }
-            });
-
-            response.put("success", true);
-            response.put("message", "已拒绝申请，并向用户发送了通知邮件");
-        } catch (Exception e) {
-            response.put("success", false);
-            response.put("message", "操作失败: " + e.getMessage());
         }
         return response;
     }
