@@ -1,4 +1,4 @@
-package net.corda.samples.example.client;
+package net.corda.samples.fexample.client;
 
 import java.util.concurrent.atomic.AtomicInteger;
 import net.corda.client.rpc.CordaRPCClient;
@@ -88,7 +88,7 @@ public class TemperatureDataWriter {
 
         try {
             SignedTransaction tx = proxy.startTrackedFlowDynamic(
-                    net.corda.samples.example.flows.TemperatureFlows.CreateTemperatureFlow.class,
+                    net.corda.samples.example.temperature.flows.TemperatureFlows.CreateTemperatureFlow.class,
                     timestamp, temperature, isCritical, receiver
             ).getReturnValue().get();
 
@@ -122,7 +122,7 @@ public class TemperatureDataWriter {
                 Instant timestamp = Instant.now();
 
                 SignedTransaction tx = proxy.startTrackedFlowDynamic(
-                        net.corda.samples.example.flows.TemperatureFlows.CreateTemperatureFlow.class,
+                        net.corda.samples.example.temperature.flows.TemperatureFlows.CreateTemperatureFlow.class,
                         timestamp, temperature, isCritical, receiver
                 ).getReturnValue().get();
 

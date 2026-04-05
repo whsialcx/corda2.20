@@ -5,7 +5,7 @@ import net.corda.client.rpc.CordaRPCConnection;
 import net.corda.core.contracts.StateAndRef;
 import net.corda.core.messaging.CordaRPCOps;
 import net.corda.core.utilities.NetworkHostAndPort;
-import net.corda.samples.example.states.TemperatureState;
+import net.corda.samples.example.temperature.states.TemperatureState;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -66,7 +66,7 @@ public class TemperatureDataChecker {
     private static void queryTemperatures(CordaRPCOps proxy, boolean onlyCritical) {
         try {
             List<StateAndRef<TemperatureState>> states = proxy.startTrackedFlowDynamic(
-                    net.corda.samples.example.flows.TemperatureFlows.QueryTemperaturesFlow.class,
+                    net.corda.samples.example.temperature.flows.TemperatureFlows.QueryTemperaturesFlow.class,
                     onlyCritical
             ).getReturnValue().get();
 

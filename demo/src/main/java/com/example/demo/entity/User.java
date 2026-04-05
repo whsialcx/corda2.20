@@ -24,9 +24,13 @@ public class User {
     @Column(nullable = false)
     private String role;
     
-    // 新增：账号是否已激活（默认为 true，普通用户直接激活；管理员初始为 false）
+    // 账号是否已激活（普通用户直接 true，管理员需审批）
     @Column(nullable = false)
     private boolean enabled = true;
+    
+    // 新增：实名认证状态 (UNVERIFIED: 未认证, PENDING: 审核中, VERIFIED: 已认证)
+    @Column(nullable = false)
+    private String kycStatus = "UNVERIFIED";
     
     @Column(name = "created_at")
     private LocalDateTime createdAt;
@@ -46,7 +50,7 @@ public class User {
         this.updatedAt = LocalDateTime.now();
     }
     
-    // Getter 和 Setter
+    // Getters and Setters
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
 
@@ -67,6 +71,9 @@ public class User {
 
     public boolean isEnabled() { return enabled; }
     public void setEnabled(boolean enabled) { this.enabled = enabled; }
+
+    public String getKycStatus() { return kycStatus; }
+    public void setKycStatus(String kycStatus) { this.kycStatus = kycStatus; }
 
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }

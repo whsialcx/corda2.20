@@ -13,8 +13,8 @@ import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.*;
 
-import net.corda.samples.example.flows.ExampleFlow;
-import net.corda.samples.example.states.IOUState;
+import net.corda.samples.example.iou.flows.ExampleFlow;
+import net.corda.samples.example.iou.states.IOUState;
 import org.bouncycastle.asn1.x500.X500Name;
 import org.bouncycastle.asn1.x500.style.BCStyle;
 import org.slf4j.Logger;

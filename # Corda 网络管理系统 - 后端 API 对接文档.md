@@ -99,3 +99,29 @@
 | 400 Bad Request | 参数错误或业务逻辑冲突（如组织名已存在）。 |
 | 500 Internal Server Error | 后端脚本执行错误或数据库异常。 |
 | 202 Accepted | 节点文件正在生成中，请稍后下载。 |
+
+
+### 普通用户（User）使用的 API
+| 接口路径 | 方法 | 说明 | 所在文件 |
+| :--- | :--- | :--- | :--- |
+| `/api/auth/user/login` | **POST** | **用户登录** | `index.html` |
+| `/api/auth/user/register` | **POST** | **用户注册** | `user-dashboard.html` |
+| `/api/nodes/applications/my?username={username}` | **GET** | **获取当前用户的所有节点申请记录** | `user-dashboard.html` |
+| `/api/nodes/apply` | **POST** | **提交新节点申请（需提供组织、城市、国家）** | `user-dashboard.html` |
+| `/api/corda/{nodeName}/status` | **GET** | **检查指定节点的 RPC 连通性（在线/离线）** | `user-dashboard.html` |
+| `/api/nodes/download/{nodeName}` | **GET** | **下载已通过审批的节点安装包（ZIP 文件）** | `user-dashboard.html` |
+
+### 管理员（Admin）使用的 API
+| 接口路径 | 方法 | 说明 | 所在文件 |
+| :--- | :--- | :--- | :--- |
+| `/api/auth/admin/login` | **POST** | **管理员登录** | `index.html` |
+| `/api/auth/admin/register` | **POST** | **管理员注册** | `index.html` |
+| `/api/nodes/validate` | **GET** | **验证 Corda 项目环境（检查 build.gradle、部署脚本等）** | `admin-dashboard.html` |
+| `/api/nodes/deploy` | **POST** | **部署整个网络（执行 gradlew deployNodes）** | `admin-dashboard.html` |
+| `/api/nodes/start-all` | **POST** | **启动所有已部署的节点** | `admin-dashboard.html` |
+| `/api/nodes/applications/pending` | **GET** | **获取所有待审批的节点申请** | `admin-dashboard.html` |
+| `/api/nodes/approve/{id}` | **POST** | **审批通过指定申请，并实际生成节点** | `admin-dashboard.html` |
+| `/api/nodes/list` | **GET** | **获取所有已注册节点（包括名称、状态等信息）** | `admin-dashboard.html` |
+| `/api/corda/test-all-nodes` | **GET** | **测试所有节点的连接状态（在线/离线）** | `admin-dashboard.html` |
+| `/api/corda/{nodeName}/info` | **GET** | **获取指定节点的详细信息（身份、对等节点等）** | `admin-dashboard.html` |
+| `/api/nodes/stop` | **POST** | **停止指定节点（需提供节点名称）** | `admin-dashboard.html` |

@@ -4,7 +4,7 @@ import net.corda.core.contracts.StateAndRef;
 import net.corda.core.identity.Party;
 import net.corda.core.messaging.CordaRPCOps;
 import net.corda.core.transactions.SignedTransaction;
-import net.corda.samples.example.states.TemperatureState;
+import net.corda.samples.example.temperature.states.TemperatureState;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
@@ -90,7 +90,7 @@ public class TemperatureController {
             
             // 尝试执行温度Flow
             SignedTransaction tx = proxy.startTrackedFlowDynamic(
-                    net.corda.samples.example.flows.TemperatureFlows.CreateTemperatureFlow.class,
+                    net.corda.samples.example.temperature.flows.TemperatureFlows.CreateTemperatureFlow.class,
                     request.getTimestamp() != null ? request.getTimestamp() : Instant.now(),
                     request.getTemperature(),
                     request.isCritical(),
@@ -142,7 +142,7 @@ public class TemperatureController {
             }
             
             List<StateAndRef<TemperatureState>> states = proxy.startTrackedFlowDynamic(
-                    net.corda.samples.example.flows.TemperatureFlows.QueryTemperaturesFlow.class,
+                    net.corda.samples.example.temperature.flows.TemperatureFlows.QueryTemperaturesFlow.class,
                     onlyCritical
             ).getReturnValue().get();
 
@@ -207,7 +207,7 @@ public class TemperatureController {
             Party newReceiver = newReceiverParties.iterator().next();
             
             SignedTransaction tx = proxy.startTrackedFlowDynamic(
-                    net.corda.samples.example.flows.TemperatureFlows.TransferTemperatureFlow.class,
+                    net.corda.samples.example.temperature.flows.TemperatureFlows.TransferTemperatureFlow.class,
                     request.getLinearId(),
                     newReceiver
             ).getReturnValue().get();

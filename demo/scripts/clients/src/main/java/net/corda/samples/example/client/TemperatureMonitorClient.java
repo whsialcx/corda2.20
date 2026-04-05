@@ -7,7 +7,7 @@ import net.corda.core.identity.Party;
 import net.corda.core.messaging.CordaRPCOps;
 import net.corda.core.transactions.SignedTransaction;
 import net.corda.core.utilities.NetworkHostAndPort;
-import net.corda.samples.example.states.TemperatureState;
+import net.corda.samples.example.temperature.states.TemperatureState;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -72,7 +72,7 @@ public class TemperatureMonitorClient {
                     temperature, isCritical, owner, receiver);
 
             SignedTransaction tx = proxy.startTrackedFlowDynamic(
-                    net.corda.samples.example.flows.TemperatureFlows.CreateTemperatureFlow.class,
+                    net.corda.samples.example.temperature.flows.TemperatureFlows.CreateTemperatureFlow.class,
                     timestamp, temperature, isCritical, receiver
             ).getReturnValue().get();
 
@@ -92,7 +92,7 @@ public class TemperatureMonitorClient {
         try {
             // 查询所有温度记录
             List<StateAndRef<TemperatureState>> allTemps = proxy.startTrackedFlowDynamic(
-                    net.corda.samples.example.flows.TemperatureFlows.QueryTemperaturesFlow.class,
+                    net.corda.samples.example.temperature.flows.TemperatureFlows.QueryTemperaturesFlow.class,
                     false
             ).getReturnValue().get();
 
@@ -106,7 +106,7 @@ public class TemperatureMonitorClient {
 
             // 查询关键温度记录
             List<StateAndRef<TemperatureState>> criticalTemps = proxy.startTrackedFlowDynamic(
-                    net.corda.samples.example.flows.TemperatureFlows.QueryTemperaturesFlow.class,
+                    net.corda.samples.example.temperature.flows.TemperatureFlows.QueryTemperaturesFlow.class,
                     true
             ).getReturnValue().get();
 
@@ -129,7 +129,7 @@ public class TemperatureMonitorClient {
         try {
             // 1. 首先查询现有记录
             List<StateAndRef<TemperatureState>> temps = proxy.startTrackedFlowDynamic(
-                    net.corda.samples.example.flows.TemperatureFlows.QueryTemperaturesFlow.class,
+                    net.corda.samples.example.temperature.flows.TemperatureFlows.QueryTemperaturesFlow.class,
                     false
             ).getReturnValue().get();
 
@@ -148,7 +148,7 @@ public class TemperatureMonitorClient {
 
             // 3. 执行转移
             SignedTransaction tx = proxy.startTrackedFlowDynamic(
-                    net.corda.samples.example.flows.TemperatureFlows.TransferTemperatureFlow.class,
+                    net.corda.samples.example.temperature.flows.TemperatureFlows.TransferTemperatureFlow.class,
                     temp.getLinearId(), newReceiver
             ).getReturnValue().get();
 

@@ -1,14 +1,15 @@
+SELECT 'CREATE DATABASE corda_party_a' WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname='corda_party_a')\gexec
 SELECT 'CREATE DATABASE corda_party_d' WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname='corda_party_d')\gexec
 SELECT 'CREATE DATABASE corda_party_b' WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname='corda_party_b')\gexec
-
+SELECT 'CREATE USER user_a WITH PASSWORD ''123456''' WHERE NOT EXISTS (SELECT FROM pg_roles WHERE rolname='user_a')\gexec
 SELECT 'CREATE USER user_b WITH PASSWORD ''123456''' WHERE NOT EXISTS (SELECT FROM pg_roles WHERE rolname='user_b')\gexec
 SELECT 'CREATE USER user_d WITH PASSWORD ''123456''' WHERE NOT EXISTS (SELECT FROM pg_roles WHERE rolname='user_d')\gexec
-
+GRANT ALL PRIVILEGES ON DATABASE corda_party_a TO user_a;
 GRANT ALL PRIVILEGES ON DATABASE corda_party_b TO user_b;
 GRANT ALL PRIVILEGES ON DATABASE corda_party_d TO user_d;
 \c corda_party_a
 DO $$ BEGIN IF NOT EXISTS(SELECT 1 FROM information_schema.schemata WHERE schema_name='public' AND schema_owner='user_a') THEN
-    
+    GRANT CREATE ON SCHEMA public TO user_a; ALTER SCHEMA public OWNER TO user_a;
 END IF; END $$;
 \c corda_party_b
 DO $$ BEGIN IF NOT EXISTS(SELECT 1 FROM information_schema.schemata WHERE schema_name='public' AND schema_owner='user_b') THEN
@@ -18,31 +19,6 @@ END IF; END $$;
 DO $$ BEGIN IF NOT EXISTS(SELECT 1 FROM information_schema.schemata WHERE schema_name='public' AND schema_owner='user_d') THEN
     GRANT CREATE ON SCHEMA public TO user_d; ALTER SCHEMA public OWNER TO user_d;
 END IF; END $$;
--- 配置为节点 '"O=PartyA,L=London,C=GB"' 自动添加
-
-
-
-\c corda_party_a
-DO $$ BEGIN IF NOT EXISTS(SELECT 1 FROM information_schema.schemata WHERE schema_name='public' AND schema_owner='user_a') THEN
-    
-END IF; END $$;
--- 配置为节点 '"O=PartyA,L=London,C=GB"' 自动添加
-SELECT 'CREATE DATABASE corda_party_a' WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname='corda_party_a')\gexec
-SELECT 'CREATE USER user_a WITH PASSWORD ''123456''' WHERE NOT EXISTS (SELECT FROM pg_roles WHERE rolname='user_a')\gexec
-GRANT ALL PRIVILEGES ON DATABASE corda_party_a TO user_a;
-\c corda_party_a
-DO $$ BEGIN IF NOT EXISTS(SELECT 1 FROM information_schema.schemata WHERE schema_name='public' AND schema_owner='user_a') THEN
-    GRANT CREATE ON SCHEMA public TO user_a; ALTER SCHEMA public OWNER TO user_a;
-END IF; END $$;
-
--- 配置为节点 'O=PartyA,L=London,C=GB' 自动添加
-SELECT 'CREATE DATABASE corda_party_a' WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname='corda_party_a')\gexec
-SELECT 'CREATE USER user_a WITH PASSWORD ''123456''' WHERE NOT EXISTS (SELECT FROM pg_roles WHERE rolname='user_a')\gexec
-GRANT ALL PRIVILEGES ON DATABASE corda_party_a TO user_a;
-\c corda_party_a
-DO $$ BEGIN IF NOT EXISTS(SELECT 1 FROM information_schema.schemata WHERE schema_name='public' AND schema_owner='user_a') THEN
-    GRANT CREATE ON SCHEMA public TO user_a; ALTER SCHEMA public OWNER TO user_a;
-END IF; END $$;
 -- 配置为节点 'O=PartyE,L=Tokyo,C=JP' 自动添加
 SELECT 'CREATE DATABASE corda_party_e' WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname='corda_party_e')\gexec
 SELECT 'CREATE USER user_e WITH PASSWORD ''123456''' WHERE NOT EXISTS (SELECT FROM pg_roles WHERE rolname='user_e')\gexec
@@ -50,22 +26,4 @@ GRANT ALL PRIVILEGES ON DATABASE corda_party_e TO user_e;
 \c corda_party_e
 DO $$ BEGIN IF NOT EXISTS(SELECT 1 FROM information_schema.schemata WHERE schema_name='public' AND schema_owner='user_e') THEN
     GRANT CREATE ON SCHEMA public TO user_e; ALTER SCHEMA public OWNER TO user_e;
-END IF; END $$;
-
--- 配置为节点 'O=PartyTest,L=Beijing,C=CN' 自动添加
-SELECT 'CREATE DATABASE corda_party_t' WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname='corda_party_t')\gexec
-SELECT 'CREATE USER user_t WITH PASSWORD ''123456''' WHERE NOT EXISTS (SELECT FROM pg_roles WHERE rolname='user_t')\gexec
-GRANT ALL PRIVILEGES ON DATABASE corda_party_t TO user_t;
-\c corda_party_t
-DO $$ BEGIN IF NOT EXISTS(SELECT 1 FROM information_schema.schemata WHERE schema_name='public' AND schema_owner='user_t') THEN
-    GRANT CREATE ON SCHEMA public TO user_t; ALTER SCHEMA public OWNER TO user_t;
-END IF; END $$;
-
--- 配置为节点 'O=Mybank,L=Beijing,C=CN' 自动添加
-SELECT 'CREATE DATABASE corda_party_mybank' WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname='corda_party_mybank')\gexec
-SELECT 'CREATE USER user_mybank WITH PASSWORD ''123456''' WHERE NOT EXISTS (SELECT FROM pg_roles WHERE rolname='user_mybank')\gexec
-GRANT ALL PRIVILEGES ON DATABASE corda_party_mybank TO user_mybank;
-\c corda_party_mybank
-DO $$ BEGIN IF NOT EXISTS(SELECT 1 FROM information_schema.schemata WHERE schema_name='public' AND schema_owner='user_mybank') THEN
-    GRANT CREATE ON SCHEMA public TO user_mybank; ALTER SCHEMA public OWNER TO user_mybank;
 END IF; END $$;

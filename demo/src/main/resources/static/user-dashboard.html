@@ -37,8 +37,13 @@
 <div class="container">
     <div class="card" style="display: flex; justify-content: space-between; align-items: center;">
         <h2>Corda 联盟链参与者面板</h2>
-        <div>
+        <div style="display: flex; align-items: center;">
             <span>当前用户: <strong id="user-display">---</strong></span>
+            
+            <button class="btn-outline" onclick="window.location.href='/kyc.html'" style="margin-left:15px; border-color: var(--primary); color: var(--primary); font-weight: bold;">
+                前往实名认证
+            </button>
+            
             <button class="btn-outline" onclick="logout()" style="margin-left:15px;">退出</button>
         </div>
     </div>
@@ -148,6 +153,7 @@
     }
 
     // 申请新节点
+// 申请新节点
     async function applyNode() {
         const o = document.getElementById('node-o').value.trim();
         const l = document.getElementById('node-l').value.trim();
@@ -155,22 +161,29 @@
         
         if(!o || !l || !c) return alert("请完整填写信息");
 
-        const res = await fetch('/api/nodes/apply', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ o, l, c, applicant: currentUser })
-        });
-        const result = await res.json();
-        if(result.success || res.ok) {
-            alert("申请提交成功！");
-            // 清空输入框
-            document.getElementById('node-o').value = '';
-            document.getElementById('node-l').value = '';
-            document.getElementById('node-c').value = '';
-            // 刷新列表
-            loadMyData();
-        } else {
-            alert("申请失败: " + (result.message || "未知错误"));
+        try {
+            const res = await fetch('/api/nodes/apply', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ o, l, c, applicant: currentUser })
+            });
+            const result = await res.json();
+            
+            // 修改这里：只判断 result.success
+            if(result.success) {
+                alert("申请提交成功！");
+                // 清空输入框
+                document.getElementById('node-o').value = '';
+                document.getElementById('node-l').value = '';
+                document.getElementById('node-c').value = '';
+                // 刷新列表
+                loadMyData();
+            } else {
+                // 此时就会正确弹出后端拦截的信息
+                alert("申请失败: " + (result.message || "未知错误"));
+            }
+        } catch (e) {
+            alert("请求发送异常: " + e.message);
         }
     }
 

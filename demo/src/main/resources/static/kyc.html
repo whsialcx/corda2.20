@@ -1,0 +1,671 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>实名认证 - 安全中心</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #2ecc71;
+            --primary-dark: #27ae60;
+            --dark: #2c3e50;
+            --light: #f8f9fa;
+            --danger: #e74c3c;
+            --danger-dark: #c0392b;
+            --warning: #f39c12;
+            --gray: #bdc3c7;
+            --gray-dark: #7f8c8d;
+            --border: #e2e8f0;
+        }
+
+        body {
+            font-family: 'Segoe UI', 'Roboto', system-ui, -apple-system, sans-serif;
+            background: linear-gradient(135deg, #e8f5e9 0%, #c8e6d9 100%);
+            margin: 0;
+            padding: 40px 20px;
+            color: #1e293b;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .kyc-container {
+            background: white;
+            padding: 32px 36px;
+            border-radius: 28px;
+            box-shadow: 0 20px 35px -12px rgba(0, 0, 0, 0.15);
+            width: 100%;
+            max-width: 560px;
+            transition: all 0.2s ease;
+            backdrop-filter: blur(0px);
+            border: 1px solid rgba(46, 204, 113, 0.2);
+        }
+
+        h2 {
+            text-align: center;
+            color: var(--dark);
+            margin-top: 0;
+            margin-bottom: 10px;
+            font-weight: 700;
+            font-size: 1.8rem;
+            letter-spacing: -0.3px;
+        }
+
+        .subhead {
+            text-align: center;
+            color: var(--gray-dark);
+            font-size: 0.85rem;
+            margin-bottom: 28px;
+            border-bottom: 1px solid #edf2f7;
+            padding-bottom: 12px;
+        }
+
+        /* 状态提示卡片 (用于 rejected 等提示) */
+        .status-alert {
+            padding: 14px 18px;
+            border-radius: 16px;
+            margin-bottom: 24px;
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            background: #fff5e8;
+            border-left: 5px solid var(--warning);
+            color: #b45309;
+        }
+
+        .status-alert.error {
+            background: #fee2e2;
+            border-left-color: var(--danger);
+            color: #991b1b;
+        }
+
+        .status-alert.success {
+            background: #e0f2e9;
+            border-left-color: var(--primary);
+            color: #14532d;
+        }
+
+        /* 选项卡样式 */
+        .type-selector {
+            display: flex;
+            margin-bottom: 28px;
+            background: #f1f5f9;
+            border-radius: 60px;
+            overflow: hidden;
+            padding: 4px;
+            gap: 4px;
+        }
+
+        .type-selector label {
+            flex: 1;
+            text-align: center;
+            padding: 10px 0;
+            cursor: pointer;
+            font-weight: 600;
+            transition: 0.25s ease;
+            color: #475569;
+            border-radius: 40px;
+            font-size: 0.9rem;
+        }
+
+        .type-selector input[type="radio"] {
+            display: none;
+        }
+
+        .type-selector input[type="radio"]:checked + label {
+            background: var(--primary);
+            color: white;
+            box-shadow: 0 2px 6px rgba(46, 204, 113, 0.3);
+        }
+
+        /* 表单组样式 */
+        .form-group {
+            margin-bottom: 22px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            font-size: 0.85rem;
+            color: var(--dark);
+            letter-spacing: 0.3px;
+        }
+
+        .form-group input[type="text"] {
+            width: 100%;
+            padding: 12px 14px;
+            border: 1.5px solid var(--border);
+            border-radius: 16px;
+            box-sizing: border-box;
+            font-size: 0.95rem;
+            transition: all 0.2s;
+            background: #fefefe;
+        }
+
+        .form-group input[type="text"]:focus {
+            border-color: var(--primary);
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(46, 204, 113, 0.2);
+        }
+
+        /* 文件上传样式 */
+        .file-upload-wrapper {
+            border: 2px dashed #cbd5e1;
+            padding: 20px 12px;
+            text-align: center;
+            border-radius: 20px;
+            cursor: pointer;
+            position: relative;
+            transition: 0.2s;
+            background: #fafcff;
+        }
+
+        .file-upload-wrapper:hover {
+            border-color: var(--primary);
+            background: #f0fdf4;
+        }
+
+        .file-upload-wrapper input[type="file"] {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0;
+            cursor: pointer;
+        }
+
+        .upload-placeholder {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 6px;
+            color: #64748b;
+            font-size: 0.85rem;
+        }
+
+        .upload-placeholder svg {
+            width: 32px;
+            height: 32px;
+            stroke: #94a3b8;
+        }
+
+        .file-preview {
+            margin-top: 10px;
+            max-width: 100%;
+            max-height: 140px;
+            display: none;
+            border-radius: 12px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.05);
+            border: 1px solid #e2e8f0;
+        }
+
+        .btn-submit {
+            width: 100%;
+            padding: 14px;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 40px;
+            font-size: 1rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: 0.2s;
+            margin-top: 16px;
+            box-shadow: 0 4px 6px -2px rgba(0,0,0,0.1);
+        }
+
+        .btn-submit:hover {
+            background: var(--primary-dark);
+            transform: translateY(-1px);
+        }
+
+        .btn-submit:disabled {
+            background: var(--gray);
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        .nav-link {
+            display: block;
+            text-align: center;
+            margin-top: 24px;
+            color: var(--primary-dark);
+            text-decoration: none;
+            font-size: 0.85rem;
+            font-weight: 500;
+            transition: 0.2s;
+        }
+
+        .nav-link:hover {
+            color: var(--dark);
+            text-decoration: underline;
+        }
+
+        .info-badge {
+            background: #eef2ff;
+            border-radius: 20px;
+            padding: 8px 14px;
+            font-size: 0.75rem;
+            text-align: center;
+            color: #1e40af;
+            margin-top: 16px;
+        }
+
+        hr {
+            margin: 20px 0;
+            border: none;
+            border-top: 1px solid #eef2f6;
+        }
+
+        @media (max-width: 500px) {
+            .kyc-container {
+                padding: 24px 20px;
+            }
+            h2 {
+                font-size: 1.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<div class="kyc-container" id="kycRootContainer">
+    <!-- 动态内容：默认加载表单，但会被js根据状态替换或保留 -->
+    <div id="dynamicContent">
+        <h2>🔐 实名认证</h2>
+        <div class="subhead">根据监管要求，请提交真实信息</div>
+
+        <!-- 全局状态提示区域（展示被拒等消息） -->
+        <div id="globalStatusMsg" style="display: none;"></div>
+
+        <div class="type-selector">
+            <input type="radio" id="type-ind" name="kycType" value="INDIVIDUAL" checked onchange="toggleForm()">
+            <label for="type-ind">👤 个人认证</label>
+            
+            <input type="radio" id="type-ent" name="kycType" value="ENTERPRISE" onchange="toggleForm()">
+            <label for="type-ent">🏢 企业认证</label>
+        </div>
+
+        <div class="form-group">
+            <label id="label-name">真实姓名</label>
+            <input type="text" id="kyc-name" placeholder="请输入真实姓名" autocomplete="off">
+        </div>
+        
+        <div class="form-group">
+            <label id="label-idNumber">身份证号码</label>
+            <input type="text" id="kyc-idNumber" placeholder="请输入18位身份证号码" autocomplete="off">
+        </div>
+
+        <div id="enterprise-fields" class="hidden">
+            <div class="form-group">
+                <label>⚖️ 法定代表人姓名</label>
+                <input type="text" id="kyc-legalPerson" placeholder="与营业执照一致" autocomplete="off">
+            </div>
+        </div>
+
+        <div id="individual-fields">
+            <div class="form-group">
+                <label>📄 身份证正面照片</label>
+                <div class="file-upload-wrapper" id="frontUpload">
+                    <div class="upload-placeholder" id="text-front-placeholder">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5" width="28" height="28">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
+                        </svg>
+                        <span>点击上传正面照片</span>
+                    </div>
+                    <input type="file" id="file-front" accept="image/jpeg,image/png,image/jpg" onchange="previewImage(this, 'preview-front', 'text-front-placeholder')">
+                    <img id="preview-front" class="file-preview" alt="正面预览">
+                </div>
+            </div>
+            <div class="form-group">
+                <label>📄 身份证反面照片</label>
+                <div class="file-upload-wrapper" id="backUpload">
+                    <div class="upload-placeholder" id="text-back-placeholder">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5" width="28" height="28">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
+                        </svg>
+                        <span>点击上传反面照片</span>
+                    </div>
+                    <input type="file" id="file-back" accept="image/jpeg,image/png,image/jpg" onchange="previewImage(this, 'preview-back', 'text-back-placeholder')">
+                    <img id="preview-back" class="file-preview" alt="反面预览">
+                </div>
+            </div>
+        </div>
+
+        <button id="submitBtn" class="btn-submit" onclick="submitKyc()">提交审核</button>
+        
+        <a href="/user-dashboard.html" class="nav-link">← 返回工作台</a>
+        <div class="info-badge">信息仅用于合规审核，严格保密</div>
+    </div>
+</div>
+
+<script>
+    // ---------- 全局变量 ----------
+    const currentUser = localStorage.getItem('auth_username');
+    let base64Front = "";
+    let base64Back = "";
+    let currentKycStatus = null;        // 存储后端状态
+    let isPageLocked = false;            // 若状态为VERIFIED或PENDING，锁定页面
+
+    // ---------- 辅助函数：显示提示（不覆盖表单，用于rejected等）----------
+    function showStatusMessage(message, type = 'warning') {
+        let msgDiv = document.getElementById('globalStatusMsg');
+        if (!msgDiv) return;
+        msgDiv.style.display = 'block';
+        msgDiv.className = `status-alert ${type === 'error' ? 'error' : (type === 'success' ? 'success' : '')}`;
+        msgDiv.innerHTML = `<span>${type === 'error' ? '⚠️' : (type === 'success' ? '✅' : 'ℹ️')}</span><span>${message}</span>`;
+        // 滚动到顶部让用户看到
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function hideStatusMessage() {
+        let msgDiv = document.getElementById('globalStatusMsg');
+        if (msgDiv) msgDiv.style.display = 'none';
+    }
+
+    // ---------- 完全锁定页面并展示成功/审核中状态 (VERIFIED / PENDING) ----------
+    function renderLockedState(status, extraMsg = '') {
+        const container = document.getElementById('kycRootContainer');
+        if (!container) return;
+        let title = '';
+        let content = '';
+        let icon = '';
+        let btnText = '';
+        if (status === 'VERIFIED') {
+            icon = '✅';
+            title = '您已通过实名认证';
+            content = '您的身份信息已验证通过，享有完整平台权限。无需重复提交。';
+            btnText = '返回工作台';
+        } else if (status === 'PENDING') {
+            icon = '⏳';
+            title = '实名认证审核中';
+            content = `您的资料正在加急审核中，预计5-20分钟内完成。请耐心等待。${extraMsg ? '<br/>' + extraMsg : ''}`;
+            btnText = '返回工作台';
+        } else {
+            return; // 其他状态不锁
+        }
+
+        container.innerHTML = `
+            <div style="text-align: center; padding: 20px 12px;">
+                <div style="font-size: 64px; margin-bottom: 16px;">${icon}</div>
+                <h2 style="color: ${status === 'VERIFIED' ? 'var(--primary)' : 'var(--warning)'};">${title}</h2>
+                <p style="color: #4b5563; margin: 20px 0; line-height: 1.5;">${content}</p>
+                <a href="/user-dashboard.html" class="btn-submit" style="display: inline-block; width: auto; padding: 12px 28px; text-decoration: none; background: var(--dark);">${btnText}</a>
+                <div style="margin-top: 28px;">
+                    <a href="/user-dashboard.html" style="color: var(--gray-dark); text-decoration: none; font-size: 0.85rem;">← 返回工作台</a>
+                </div>
+            </div>
+        `;
+        isPageLocked = true;
+    }
+
+    // ---------- 查询后端实名状态，并决定UI ----------
+    async function fetchAndApplyKycStatus() {
+        if (!currentUser) return;
+        try {
+            const res = await fetch(`/api/kyc/status?username=${encodeURIComponent(currentUser)}`);
+            const result = await res.json();
+            if (result.success) {
+                const status = result.kycStatus;    // UNVERIFIED, PENDING, VERIFIED, REJECTED
+                currentKycStatus = status;
+                const rejectReason = result.rejectReason || '';
+
+                // 情况1: 已认证 或 审核中 → 完全锁定，不显示表单
+                if (status === 'VERIFIED') {
+                    renderLockedState('VERIFIED');
+                    return;
+                }
+                if (status === 'PENDING') {
+                    renderLockedState('PENDING', rejectReason ? `(提示: ${rejectReason})` : '');
+                    return;
+                }
+
+                // 情况2: REJECTED 或 UNVERIFIED → 正常显示表单，但添加提示信息
+                if (status === 'REJECTED') {
+                    // 显示被拒原因，鼓励重新提交
+                    const reasonMsg = rejectReason ? `拒绝原因：${rejectReason}` : '您的认证信息未通过审核，请核对后重新提交准确资料。';
+                    showStatusMessage(reasonMsg, 'error');
+                } else if (status === 'UNVERIFIED') {
+                    // 未认证，可以显示温和提醒
+                    if (!localStorage.getItem('kyc_reminder_shown')) {
+                        showStatusMessage('请完成实名认证，解锁全部功能', 'success');
+                        localStorage.setItem('kyc_reminder_shown', 'true');
+                    } else {
+                        hideStatusMessage();
+                    }
+                } else {
+                    hideStatusMessage();
+                }
+
+                // 如果之前由于某些原因被锁定了，但现在是UNVERIFIED/REJECTED，确保表单可见且未锁定
+                isPageLocked = false;
+                // 确保动态内容里的表单元素都存在（初始html就有，不用额外操作）
+                // 但如果之前被替换过（由于某些异步冲突），确保重新初始化？不会，因为我们没有覆盖表单区域。
+                // 但为了严谨，确保个别字段可见性基于当前选中的radio
+                ensureFormVisibility();
+            } else {
+                console.warn('状态查询失败', result.message);
+                // 降级：依然显示表单，但给个普通提示
+                showStatusMessage('无法获取认证状态，请稍后刷新', 'error');
+            }
+        } catch (err) {
+            console.error('请求状态接口失败:', err);
+            showStatusMessage('网络错误，状态同步失败，可稍后重试', 'error');
+        }
+    }
+
+    // 确保表单字段的显隐与当前选择的类型匹配（个人/企业）
+    function ensureFormVisibility() {
+        const isEnterpriseRadio = document.getElementById('type-ent');
+        if (!isEnterpriseRadio) return;
+        const isEnterprise = isEnterpriseRadio.checked;
+        const enterpriseDiv = document.getElementById('enterprise-fields');
+        const individualDiv = document.getElementById('individual-fields');
+        if (enterpriseDiv) enterpriseDiv.classList.toggle('hidden', !isEnterprise);
+        if (individualDiv) individualDiv.classList.toggle('hidden', isEnterprise);
+        
+        const nameLabel = document.getElementById('label-name');
+        const nameInput = document.getElementById('kyc-name');
+        const idLabel = document.getElementById('label-idNumber');
+        const idInput = document.getElementById('kyc-idNumber');
+        if (isEnterprise) {
+            if (nameLabel) nameLabel.innerText = '企业名称';
+            if (nameInput) nameInput.placeholder = '请输入营业执照企业全称';
+            if (idLabel) idLabel.innerText = '统一社会信用代码';
+            if (idInput) idInput.placeholder = '18位统一社会信用代码';
+        } else {
+            if (nameLabel) nameLabel.innerText = '真实姓名';
+            if (nameInput) nameInput.placeholder = '请输入真实姓名（与身份证一致）';
+            if (idLabel) idLabel.innerText = '身份证号码';
+            if (idInput) idInput.placeholder = '请输入18位身份证号码';
+        }
+    }
+
+    // 切换表单时调用 (个人/企业)
+    window.toggleForm = function() {
+        if (isPageLocked) return; // 页面已锁定，不可切换
+        const isEnterprise = document.getElementById('type-ent').checked;
+        const enterpriseDiv = document.getElementById('enterprise-fields');
+        const individualDiv = document.getElementById('individual-fields');
+        if (enterpriseDiv) enterpriseDiv.classList.toggle('hidden', !isEnterprise);
+        if (individualDiv) individualDiv.classList.toggle('hidden', isEnterprise);
+        
+        const nameLabel = document.getElementById('label-name');
+        const nameInput = document.getElementById('kyc-name');
+        const idLabel = document.getElementById('label-idNumber');
+        const idInput = document.getElementById('kyc-idNumber');
+        if (isEnterprise) {
+            nameLabel.innerText = '企业名称';
+            nameInput.placeholder = '请输入企业全称';
+            idLabel.innerText = '统一社会信用代码';
+            idInput.placeholder = '请输入18位统一社会信用代码';
+        } else {
+            nameLabel.innerText = '真实姓名';
+            nameInput.placeholder = '请输入真实姓名';
+            idLabel.innerText = '身份证号码';
+            idInput.placeholder = '请输入18位身份证号码';
+        }
+    };
+
+    // 图片预览与Base64存储
+    window.previewImage = function(input, previewId, textPlaceholderId) {
+        if (input.files && input.files[0]) {
+            const file = input.files[0];
+            // 简单校验图片类型和大小（限制5MB）
+            if (file.size > 5 * 1024 * 1024) {
+                alert('图片大小不能超过5MB，请压缩后重新上传');
+                input.value = '';
+                return;
+            }
+            if (!file.type.startsWith('image/')) {
+                alert('请上传图片文件 (jpg, png)');
+                input.value = '';
+                return;
+            }
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const imgResult = e.target.result;
+                const previewImg = document.getElementById(previewId);
+                const placeholderDiv = document.getElementById(textPlaceholderId);
+                if (previewImg) {
+                    previewImg.src = imgResult;
+                    previewImg.style.display = 'block';
+                }
+                if (placeholderDiv) placeholderDiv.style.display = 'none';
+                
+                // 存储对应base64
+                if (previewId === 'preview-front') base64Front = imgResult;
+                if (previewId === 'preview-back') base64Back = imgResult;
+            };
+            reader.readAsDataURL(file);
+        }
+    };
+
+    // 重置图片上传区域（可选，如果用户想重新上传时调用，简化起见不清除展示）
+    function resetImagesIfNeeded() {
+        // 不做强制重置，由用户自行重新选择覆盖
+    }
+
+    // 提交实名认证
+    window.submitKyc = async function() {
+        if (isPageLocked) {
+            alert('当前状态无需重复提交');
+            return;
+        }
+        const isEnterprise = document.getElementById('type-ent').checked;
+        const type = isEnterprise ? "ENTERPRISE" : "INDIVIDUAL";
+        const name = document.getElementById('kyc-name').value.trim();
+        const idNumber = document.getElementById('kyc-idNumber').value.trim();
+        const legalPerson = document.getElementById('kyc-legalPerson')?.value.trim() || '';
+
+        // 基础校验
+        if (!name) {
+            alert(isEnterprise ? '请填写企业名称' : '请填写真实姓名');
+            return;
+        }
+        if (!idNumber) {
+            alert(isEnterprise ? '请填写统一社会信用代码' : '请填写身份证号码');
+            return;
+        }
+        if (isEnterprise && !legalPerson) {
+            alert('企业认证必须填写法定代表人姓名');
+            return;
+        }
+        if (!isEnterprise && (!base64Front || !base64Back)) {
+            alert('个人认证必须上传身份证正反面照片');
+            return;
+        }
+
+        // 简单格式校验（身份证/信用代码基础长度）
+        if (!isEnterprise) {
+            const idRegex = /^[1-9]\d{5}(18|19|20)\d{2}((0[1-9])|(1[0-2]))(([0-2][1-9])|10|20|30|31)\d{3}[0-9Xx]$/;
+            if (!idRegex.test(idNumber)) {
+                alert('请输入正确的18位身份证号码格式');
+                return;
+            }
+        } else {
+            // 统一社会信用代码: 18位 字母数字组合简单校验
+            if (!/^[0-9A-HJ-NPQRTUWXY]{2}\d{6}[0-9A-HJ-NPQRTUWXY]{10}$/.test(idNumber.toUpperCase())) {
+                alert('统一社会信用代码格式不正确（应为18位）');
+                return;
+            }
+        }
+
+        const submitBtn = document.getElementById('submitBtn');
+        const originalText = submitBtn.innerText;
+        submitBtn.disabled = true;
+        submitBtn.innerText = "提交中...";
+
+        const requestBody = {
+            username: currentUser,
+            type: type,
+            name: name,
+            idNumber: idNumber,
+            legalPerson: isEnterprise ? legalPerson : null,
+            idCardFrontUrl: isEnterprise ? null : base64Front,
+            idCardBackUrl: isEnterprise ? null : base64Back
+        };
+
+        try {
+            const res = await fetch('/api/kyc/submit', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(requestBody)
+            });
+            const result = await res.json();
+            if (result.success) {
+                alert("✅ " + (result.message || "提交成功！等待审核"));
+                // 提交成功后刷新状态：可能状态变成PENDING，应直接锁定页面显示审核中
+                // 重新拉取状态，让页面进入PENDING锁屏状态
+                await fetchAndApplyKycStatus();
+                if (!isPageLocked) {
+                    // 如果后端没有更新成功，则跳转工作台
+                    window.location.href = '/user-dashboard.html';
+                }
+            } else {
+                alert("提交失败: " + (result.message || "未知错误，请稍后重试"));
+                submitBtn.disabled = false;
+                submitBtn.innerText = originalText;
+            }
+        } catch (error) {
+            alert("网络错误: " + error.message);
+            submitBtn.disabled = false;
+            submitBtn.innerText = originalText;
+        }
+    };
+
+    // 监听登录态并初始化
+    (function init() {
+        if (!currentUser) {
+            alert("请先登录！");
+            window.location.href = '/index.html';
+            return;
+        }
+
+        // 先确保表单初始状态正确
+        ensureFormVisibility();
+        // 默认个人选中状态，确保无企业字段显示
+        document.getElementById('type-ind').checked = true;
+        toggleForm();  // 初始化标签
+
+        // 查询后端真实状态，决定是否锁屏
+        fetchAndApplyKycStatus().catch(err => console.warn(err));
+    })();
+</script>
+</body>
+</html>

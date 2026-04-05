@@ -2,8 +2,10 @@ package com.example.demo.controller;
 
 import com.example.demo.entity.CordaNode;
 import com.example.demo.entity.NodeApplication;
+import com.example.demo.entity.User;                 // 新增导入
 import com.example.demo.repository.CordaNodeRepository;
 import com.example.demo.repository.NodeApplicationRepository;
+import com.example.demo.repository.UserRepository;  // 新增导入
 import com.example.demo.service.CordaNodeManager;
 import com.example.demo.service.PowerShellService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -11,7 +13,6 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.core.io.Resource;
 import org.springframework.http.*;
-import org.springframework.http.HttpHeaders;
 import java.util.zip.*;
 
 import java.io.File;
@@ -41,8 +42,9 @@ public class NodeController {
 
     @Autowired
     private NodeApplicationRepository nodeApplicationRepository;
-
-    // ==================== 原有接口（保留不变）====================
+    
+    @Autowired
+    private UserRepository userRepository;   // 新增：用于检查实名状态
 
     @GetMapping("/validate")
     public Map<String, Object> validateCordaProject() {
@@ -393,6 +395,16 @@ public class NodeController {
     public Map<String, Object> applyForNode(@RequestBody NodeApplyRequest request) {
         Map<String, Object> response = new HashMap<>();
         try {
+            // ================= 新增：实名认证拦截 =================
+            String applicantUsername = request.getApplicant() != null ? request.getApplicant() : "unknown";
+            User user = userRepository.findByUsername(applicantUsername).orElse(null);
+            if (user == null || !"VERIFIED".equals(user.getKycStatus())) {
+                response.put("success", false);
+                response.put("message", "必须先通过实名验证才能申请节点");
+                return response;
+            }
+            // ================================================
+
             // 1. 参数校验
             if (request.getO() == null || request.getO().trim().isEmpty() ||
                 request.getL() == null || request.getL().trim().isEmpty() ||
@@ -417,9 +429,9 @@ public class NodeController {
                 return response;
             }
 
-            // 4. 保存申请（申请人从请求中获取，实际应从 SecurityContext 获取）
+            // 4. 保存申请
             NodeApplication app = new NodeApplication(request.getO(), request.getL(), request.getC(),
-                    request.getApplicant() != null ? request.getApplicant() : "unknown");
+                    applicantUsername);
             nodeApplicationRepository.save(app);
 
             response.put("success", true);

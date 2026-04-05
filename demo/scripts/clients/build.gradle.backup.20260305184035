@@ -1,0 +1,87 @@
+apply plugin: 'org.springframework.boot'
+
+sourceSets {
+    main {
+        resources {
+            srcDir rootProject.file("config/dev")
+        }
+    }
+}
+
+cordapp {
+    targetPlatformVersion corda_platform_version.toInteger()
+    minimumPlatformVersion corda_platform_version.toInteger()
+}
+
+dependencies {
+    // Corda dependencies.
+    implementation ("$corda_release_group:corda-rpc:$corda_release_version")  {
+        exclude group: "ch.qos.logback", module: "logback-classic"
+    }
+    implementation "net.corda:corda-jackson:$corda_release_version"
+    implementation "$corda_core_release_group:corda-core:$corda_core_release_version"
+    // CorDapp dependencies.
+    implementation project(":contracts")
+    implementation project(":workflows")
+    implementation("org.springframework.boot:spring-boot-starter-websocket:$spring_boot_version") {
+        exclude group: "org.springframework.boot", module: "spring-boot-starter-logging"
+    }
+    implementation "org.apache.logging.log4j:log4j-slf4j2-impl:${log4j_version}"
+    implementation "org.apache.logging.log4j:log4j-web:${log4j_version}"
+    implementation "org.slf4j:jul-to-slf4j:$slf4j_version"
+    implementation "org.bouncycastle:bcprov-jdk18on:1.75"
+    implementation "org.bouncycastle:bcpkix-jdk18on:1.75"
+}
+
+springBoot {
+    mainClass = "net.corda.samples.example.webserver.Starter"
+}
+
+/* The Client is the communication channel between the external and the node. This task will help you immediately
+ * execute your rpc methods in the main method of the client.kt. You can somewhat see this as a quick test of making
+ * RPC calls to your nodes.
+ */
+task runTestClient(type: JavaExec, dependsOn: assemble) {
+    classpath = sourceSets.main.runtimeClasspath
+    main = 'net.corda.samples.example.webserver.Client'
+    args 'localhost:10006', 'user1', 'test'
+}
+
+/* This task will start the springboot server that connects to your node (via RPC connection). All of the http requests
+ * are in the Controller file. You can leave the Server.kt and NodeRPCConnection.kt file untouched for your use.
+ */
+      
+
+task runPartyBServer(type: JavaExec, dependsOn: assemble) {
+    classpath = sourceSets.main.runtimeClasspath
+    main = 'net.corda.samples.example.webserver.Starter'
+    args '--server.port=50006', '--config.rpc.host=localhost', '--config.rpc.port=10009', '--config.rpc.username=user1', '--config.rpc.password=test'
+}    
+task runwdadServer(type: JavaExec, dependsOn: assemble) {
+    classpath = sourceSets.main.runtimeClasspath
+    main = 'net.corda.samples.example.webserver.Starter'
+    args '--server.port=50012', '--config.rpc.host=172.18.44.66', '--config.rpc.port=10019', '--config.rpc.username=user1', '--config.rpc.password=test'
+}    
+task runwwwwServer(type: JavaExec, dependsOn: assemble) {
+    classpath = sourceSets.main.runtimeClasspath
+    main = 'net.corda.samples.example.webserver.Starter'
+    args '--server.port=50011', '--config.rpc.host=172.18.44.66', '--config.rpc.port=10016', '--config.rpc.username=user1', '--config.rpc.password=test'
+}    
+task runPartyTestServer(type: JavaExec, dependsOn: assemble) {
+    classpath = sourceSets.main.runtimeClasspath
+    main = 'net.corda.samples.example.webserver.Starter'
+    args '--server.port=50010', '--config.rpc.host=172.18.44.66', '--config.rpc.port=10014', '--config.rpc.username=user1', '--config.rpc.password=test'
+}    
+task runPartyEServer(type: JavaExec, dependsOn: assemble) {
+    classpath = sourceSets.main.runtimeClasspath
+    main = 'net.corda.samples.example.webserver.Starter'
+    args '--server.port=50009', '--config.rpc.host=172.18.44.66', '--config.rpc.port=10012', '--config.rpc.username=user1', '--config.rpc.password=test'
+}    
+    
+task runPartyAServer(type: JavaExec, dependsOn: assemble) {
+    classpath = sourceSets.main.runtimeClasspath
+    main = 'net.corda.samples.example.webserver.Starter'
+    args '--server.port=50008', '--config.rpc.host=172.18.44.66', '--config.rpc.port=10010', '--config.rpc.username=user1', '--config.rpc.password=test'
+}    
+
+

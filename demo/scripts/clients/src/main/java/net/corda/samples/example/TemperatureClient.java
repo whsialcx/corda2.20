@@ -9,8 +9,8 @@ import net.corda.core.messaging.CordaRPCOps;
 import net.corda.core.node.NodeInfo;
 import net.corda.core.transactions.SignedTransaction;
 import net.corda.core.utilities.NetworkHostAndPort;
-import net.corda.samples.example.flows.TemperatureFlows;
-import net.corda.samples.example.states.TemperatureState;
+import net.corda.samples.example.temperature.flows.TemperatureFlows;
+import net.corda.samples.example.temperature.states.TemperatureState;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
