@@ -1,4 +1,4 @@
-﻿#!/usr/bin/env pwsh
+#!/usr/bin/env pwsh
 [CmdletBinding(DefaultParameterSetName="Help")]
 param(
     [Parameter(Mandatory=$true, ParameterSetName="AddNode")]
@@ -193,10 +193,10 @@ function Auto-AssignPorts
     $p2pMatches = [regex]::Matches($content, 'p2p(?:Port\s+|Address\s+".*?:)(\d+)"?')
     $allP2pPorts = @($p2pMatches | ForEach-Object { [int]$_.Groups[1].Value })
     
-    $rpcMatches = [regex]::Matches($content, 'address\("172\.18\.44\.66:(\d+)"\)')
+    $rpcMatches = [regex]::Matches($content, 'address\("localhost:(\d+)"\)')
     $allRpcPorts = @($rpcMatches | ForEach-Object { [int]$_.Groups[1].Value })
     
-    $adminMatches = [regex]::Matches($content, 'adminAddress\("172\.18\.44\.66:(\d+)"\)')
+    $adminMatches = [regex]::Matches($content, 'adminAddress\("localhost:(\d+)"\)')
     $allAdminPorts = @($adminMatches | ForEach-Object { [int]$_.Groups[1].Value })
     $allUsedPorts = @() + $allP2pPorts + $allRpcPorts + $allAdminPorts
     Write-Info "现有配置中的端口: $($allUsedPorts -join ', ')"
@@ -324,16 +324,16 @@ function Modify-BuildGradle
     $newNodeConfig = @" 
     node {
         name "$NodeName"
-        p2pAddress "172.18.44.66:$P2PPort"
+        p2pAddress "localhost:$P2PPort"
         rpcSettings {
-            address("172.18.44.66:$RPCPort")
-            adminAddress("172.18.44.66:$AdminPort")
+            address("localhost:$RPCPort")
+            adminAddress("localhost:$AdminPort")
         }
         rpcUsers = [[ user: "user1", "password": "test", "permissions": ["ALL"]]]
         extraConfig = [
              dataSourceProperties: [
                  dataSourceClassName: "org.postgresql.ds.PGSimpleDataSource",
-                 "dataSource.url": "jdbc:postgresql://172.18.44.66:5432/$DbName",
+                 "dataSource.url": "jdbc:postgresql://localhost:5432/$DbName",
                  "dataSource.user": "$DbUser",
                  "dataSource.password": "123456"
              ]
@@ -419,7 +419,7 @@ function Update-ClientsBuildGradle {
 task $taskName(type: JavaExec, dependsOn: assemble) {
     classpath = sourceSets.main.runtimeClasspath
     main = 'net.corda.samples.example.webserver.Starter'
-    args '--server.port=$serverPort', '--config.rpc.host=172.18.44.66', '--config.rpc.port=$RPCPort', '--config.rpc.username=user1', '--config.rpc.password=test'
+    args '--server.port=$serverPort', '--config.rpc.host=localhost', '--config.rpc.port=$RPCPort', '--config.rpc.username=user1', '--config.rpc.password=test'
 }
 "@
     

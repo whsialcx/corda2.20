@@ -62,8 +62,14 @@ task runPartyAServer(type: JavaExec, dependsOn: assemble) {
 task runPartyTestServer(type: JavaExec, dependsOn: assemble) {
     classpath = sourceSets.main.runtimeClasspath
     main = 'net.corda.samples.example.webserver.Starter'
-    args '--server.port=50008', '--config.rpc.host=localhost', '--config.rpc.port=10011', '--config.rpc.username=user1', '--config.rpc.password=test'
+    args '--server.port=50009', '--config.rpc.host=172.18.44.66', '--config.rpc.port=10013', '--config.rpc.username=user1', '--config.rpc.password=test'
 }    
+task runPartyEServer(type: JavaExec, dependsOn: assemble) {
+    classpath = sourceSets.main.runtimeClasspath
+    main = 'net.corda.samples.example.webserver.Starter'
+    args '--server.port=50008', '--config.rpc.host=localhost', '--config.rpc.port=10011', '--config.rpc.username=user1', '--config.rpc.password=test'
+}     
+
 task runPartyBServer(type: JavaExec, dependsOn: assemble) {
     classpath = sourceSets.main.runtimeClasspath
     main = 'net.corda.samples.example.webserver.Starter'

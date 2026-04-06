@@ -157,7 +157,6 @@ task copyDriversToNodes(type: Copy) {
     from configurations.cordaDriver
     into file("${buildDir}/nodes/PartyA/drivers")
     into file("${buildDir}/nodes/PartyB/drivers")
-    into file("${buildDir}/nodes/PartyTest/drivers")
 }
 
 //Task to deploy the nodes in order to bootstrap a network
@@ -225,24 +224,27 @@ task deployNodes(type: net.corda.plugins.Cordform, dependsOn: ['jar']) {
         cordapp project(':temperature-contracts')
     	cordapp project(':temperature-workflows')
     }
-    node {
-        name "O=PartyTest,L=London,C=GB"
-        p2pAddress "localhost:10010"
+    
+        node {
+        name "O=PartyE,L=Tokyo,C=JP"
+        p2pAddress "localhost:10011"
         rpcSettings {
-            address("localhost:10011")
-            adminAddress("localhost:10051")
+            address("localhost:10012")
+            adminAddress("localhost:10052")
         }
         rpcUsers = [[ user: "user1", "password": "test", "permissions": ["ALL"]]]
         extraConfig = [
              dataSourceProperties: [
                  dataSourceClassName: "org.postgresql.ds.PGSimpleDataSource",
-                 "dataSource.url": "jdbc:postgresql://localhost:5432/corda_party_t",
-                 "dataSource.user": "user_t",
+                 "dataSource.url": "jdbc:postgresql://localhost:5432/corda_party_e",
+                 "dataSource.user": "user_e",
                  "dataSource.password": "123456"
              ]
         ]
-                cordapp project(':iou-contracts')
+        cordapp project(':iou-contracts')
     	cordapp project(':iou-workflows')
+    	cordapp project(':temperature-contracts')
+    	cordapp project(':temperature-workflows')
     }
     
 }

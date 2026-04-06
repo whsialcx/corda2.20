@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>Corda 节点动态绑定测试面板</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { padding: 20px; background-color: #f8f9fa; }
+        .log-box { height: 300px; overflow-y: auto; background: #212529; color: #00ff00; padding: 10px; font-family: monospace; font-size: 14px; border-radius: 5px; }
+        .card { margin-bottom: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2 class="mb-4">⛓️ Corda 动态网关测试面板</h2>
+
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header bg-primary text-white">1. 节点管理 (NodeController)</div>
+                <div class="card-body">
+                    <button class="btn btn-info mb-3 text-white" onclick="fetchNodes()">刷新节点列表</button>
+                    
+                    <table class="table table-bordered table-sm">
+                        <thead>
+                            <tr><th>节点名称</th><th>Base URL (动态绑定的端口)</th></tr>
+                        </thead>
+                        <tbody id="nodeTableBody">
+                            </tbody>
+                    </table>
+
+                    <hr>
+                    <h5>模拟管理员动态添加节点</h5>
+                    <div class="input-group mb-2">
+                        <span class="input-group-text">名称 (X.500)</span>
+                        <input type="text" id="newNodeName" class="form-control" value="O=PartyTest,L=London,C=GB">
+                    </div>
+                    <button class="btn btn-warning" onclick="addDynamicNode()">🚀 自动分配端口并添加节点</button>
+                    <small class="form-text text-muted d-block mt-1">调用 /api/nodes/add 接口，使用 autoPorts=true</small>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header bg-success text-white">2. 动态路由验证 (CordaController)</div>
+                <div class="card-body">
+                    <p>选择一个节点，网关会根据数据库中的动态 URL 进行转发请求：</p>
+                    <div class="input-group mb-3">
+                        <select class="form-select" id="targetNodeSelect">
+                            <option value="">请先获取节点列表...</option>
+                        </select>
+                        <button class="btn btn-success" onclick="testNodeApi('/info')">查询节点 Info</button>
+                        <button class="btn btn-outline-success" onclick="testNodeApi('/status')">查询 Status</button>
+                    </div>
+
+                    <h5>API 响应/日志输出：</h5>
+                    <div id="logBox" class="log-box">等待操作...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // 你的 Spring Boot 后端地址
+    const BASE_URL = 'http://localhost:8080';
+
+    // 统一日志输出
+    function log(message, isJson = false) {
+        const logBox = document.getElementById('logBox');
+        const time = new Date().toLocaleTimeString();
+        let content = typeof message === 'object' || isJson ? JSON.stringify(message, null, 2) : message;
+        logBox.innerHTML += `<div>[${time}] ${content}</div>`;
+        logBox.scrollTop = logBox.scrollHeight;
+    }
+
+    // 1. 获取所有节点列表
+    async function fetchNodes() {
+        log("正在请求节点列表...");
+        try {
+            const response = await fetch(`${BASE_URL}/api/nodes/list`);
+            const data = await response.json();
+            
+            if (data.success) {
+                const tbody = document.getElementById('nodeTableBody');
+                const select = document.getElementById('targetNodeSelect');
+                tbody.innerHTML = '';
+                select.innerHTML = '<option value="">选择目标节点</option>';
+                
+                data.nodeDetails.forEach(node => {
+                    // 填充表格
+                    tbody.innerHTML += `<tr><td>${node.name}</td><td><span class="badge bg-secondary">${node.baseUrl}</span></td></tr>`;
+                    // 填充下拉框
+                    let shortName = node.name;
+                    let match = node.name.match(/O=([^,]+)/);
+                    if (match) shortName = match[1]; // 提取短名称用于路由
+                    
+                    select.innerHTML += `<option value="${shortName}">${shortName} (${node.baseUrl})</option>`;
+                });
+                log(`成功获取 ${data.count} 个节点信息。`);
+            }
+        } catch (error) {
+            log(`请求失败: ${error.message}`);
+        }
+    }
+
+    // 2. 动态添加节点 (模拟管理员自动分配端口)
+    async function addDynamicNode() {
+        const nodeName = document.getElementById('newNodeName').value;
+        log(`开始添加节点: ${nodeName} (自动分配端口)...`);
+        
+        const payload = {
+            nodeName: nodeName,
+            autoPorts: true,
+            autoDb: true
+        };
+
+        try {
+            const response = await fetch(`${BASE_URL}/api/nodes/add`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            const data = await response.json();
+            log(data, true);
+            
+            if (data.success) {
+                alert(`添加成功！动态绑定的 URL 为: ${data.baseUrl}`);
+                fetchNodes(); // 刷新列表
+            }
+        } catch (error) {
+            log(`添加节点请求异常: ${error.message}`);
+        }
+    }
+
+    // 3. 测试网关动态路由到对应的 Corda Web Server
+    async function testNodeApi(endpoint) {
+        const nodeName = document.getElementById('targetNodeSelect').value;
+        if (!nodeName) {
+            alert("请先从下拉框选择一个节点");
+            return;
+        }
+
+        const url = `${BASE_URL}/api/corda/${nodeName}${endpoint}`;
+        log(`--> 发起请求测试网关路由: GET ${url}`);
+        
+        try {
+            const response = await fetch(url);
+            const data = await response.json();
+            log("<-- 网关返回数据:");
+            log(data, true);
+        } catch (error) {
+            log(`网关请求异常: ${error.message}`);
+        }
+    }
+
+    // 页面加载完毕自动获取一次
+    window.onload = fetchNodes;
+</script>
+</body>
+</html>

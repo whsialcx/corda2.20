@@ -71,6 +71,17 @@
 | **记录温度** | `/api/corda/{nodeName}/record-temperature` | `POST` | `temperature`, `isCritical`, `receiver` |
 | **查询温度记录** | `/api/corda/{nodeName}/temperatures` | `GET` | `onlyCritical` (可选) |
 
+
+## 5. 实名认证模块 (KYC)(新增)
+【新增】用于处理用户的个人/企业实名认证资料提交及状态查询。**所有涉及节点申请的操作，必须在实名状态为 VERIFIED 时方可进行。**
+
+| 接口名称 | 请求路径 | 方法 | 参数 (Body/Query) | 说明 |
+| :--- | :--- | :--- | :--- | :--- |
+| **提交实名认证** | `/api/kyc/submit` | `POST` | `KycSubmitRequest` (Body)| 提交个人或企业实名资料。提交后状态变为 PENDING。 |
+| **查询实名状态** | `/api/kyc/status` | `GET` | `username` (Query) | 查询当前用户的 KYC 状态 (UNVERIFIED, PENDING, VERIFIED) 及详细记录。 |
+
+---
+
 ---
 
 ## 5. 主要数据对象 (DTO) 定义
@@ -110,6 +121,9 @@
 | `/api/nodes/apply` | **POST** | **提交新节点申请（需提供组织、城市、国家）** | `user-dashboard.html` |
 | `/api/corda/{nodeName}/status` | **GET** | **检查指定节点的 RPC 连通性（在线/离线）** | `user-dashboard.html` |
 | `/api/nodes/download/{nodeName}` | **GET** | **下载已通过审批的节点安装包（ZIP 文件）** | `user-dashboard.html` |
+| `/api/kyc/submit` | **POST** | **提交个人/企业实名认证** | `kyc.html` |（new）
+| `/api/kyc/status` | **GET** | **查询当前用户的实名认证状态** | `kyc.html` |（new）
+		
 
 ### 管理员（Admin）使用的 API
 | 接口路径 | 方法 | 说明 | 所在文件 |
