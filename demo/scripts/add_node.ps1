@@ -1,4 +1,4 @@
-#!/usr/bin/env pwsh
+﻿#!/usr/bin/env pwsh
 [CmdletBinding(DefaultParameterSetName="Help")]
 param(
     [Parameter(Mandatory=$true, ParameterSetName="AddNode")]

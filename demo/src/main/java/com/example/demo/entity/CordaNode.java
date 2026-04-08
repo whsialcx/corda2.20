@@ -1,6 +1,6 @@
 package com.example.demo.entity;
 
-import jakarta.persistence.*; // 如果使用的是较低版本的Spring Boot，可能需要换成 javax.persistence.*
+import jakarta.persistence.*;
 
 @Entity
 @Table(name = "corda_nodes")
