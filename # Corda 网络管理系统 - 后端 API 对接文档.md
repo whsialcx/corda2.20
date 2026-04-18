@@ -139,3 +139,60 @@
 | `/api/corda/test-all-nodes` | **GET** | **测试所有节点的连接状态（在线/离线）** | `admin-dashboard.html` |
 | `/api/corda/{nodeName}/info` | **GET** | **获取指定节点的详细信息（身份、对等节点等）** | `admin-dashboard.html` |
 | `/api/nodes/stop` | **POST** | **停止指定节点（需提供节点名称）** | `admin-dashboard.html` |
+
+
+# Corda 节点部署与生命周期管理手册
+
+本章节详细说明了如何在系统中从零开始部署、启动及管理 Corda 节点。所有的操作均通过后端 REST API 与底层的 PowerShell/Gradle 脚本交互完成。
+
+---
+
+## 1. 环境预检 (Environment Validation)
+在执行任何部署操作前，必须确保后端服务器与 Corda 项目目录的连通性及脚本权限。
+
+* **接口**: `GET /api/nodes/validate`
+* **核心逻辑**: 检查 `build.gradle`、PowerShell 脚本（如 `add_node.ps1`）以及项目根目录是否存在。
+* **预期结果**: 必须返回 `valid: true` 才能继续。
+
+## 2. 节点注册 (Node Registration)
+在物理部署前，需要先在网络配置和数据库中登记节点信息。
+
+### 方案 A：用户申请流程（适用于普通用户）
+1.  **实名校验**: 用户必须先完成实名认证（`KYCStatus` 为 `VERIFIED`）。
+2.  **提交申请**: 调用 `POST /api/nodes/apply`，提交组织名称 (O)、所在城市 (L) 和国家 (C)。
+3.  **管理员审批**: 管理员调用 `POST /api/nodes/approve/{id}`。系统会自动分配端口并调用 `doAddNode` 逻辑。
+
+### 方案 B：直接添加（适用于管理员测试）
+* **接口**: `POST /api/nodes/add`
+* **参数**: 可选择手动指定 `p2pPort`、`rpcPort` 或开启 `autoPorts: true` 自动分配。
+
+## 3. 网络物理部署 (Network Deployment)
+节点信息登记后，物理文件尚未生成。此步骤将触发 Gradle 构建任务。
+
+* **接口**: `POST /api/nodes/deploy`
+* **底层行为**: 系统执行 `gradlew clean deployNodes`。
+* **说明**: 该过程会生成证书、配置文件及节点运行所需的 Jar 包。文件将存放在 `build/nodes/` 目录下。
+
+## 4. 节点生命周期管理 (Lifecycle Management)
+部署完成后，可通过以下接口控制进程。
+
+* **全量启动**: `POST /api/nodes/start-all` (执行 `runnodes` 脚本)。
+* **单节点启动**: `POST /api/nodes/start` (需要传入 `nodeName`)。
+* **单节点停止**: `POST /api/nodes/stop` (Ubuntu 下使用 `pkill`，Windows 下通过 `CommandLine` 匹配进程并终止)。
+
+## 5. 节点分发 (Distribution)
+如果需要将节点迁移至其他环境运行。
+
+* **接口**: `GET /api/nodes/download/{nodeName}`
+* **功能**: 将 `build/nodes/{nodeName}` 目录下的所有内容打包为 `.zip` 文件并下载。
+* **注意**: 必须在“网络物理部署”成功后才能调用。
+
+---
+
+## 运维接口参考
+| 功能 | 接口地址 | 请求方式 |
+| :--- | :--- | :--- |
+| 查询所有节点详情 | `/api/nodes/list` | GET |
+| 查询待审批申请 | `/api/nodes/applications/pending` | GET |
+| 移除节点 | `/api/nodes/remove` | POST |
+| 测试节点连接状态 | `/api/corda/test-all-nodes` | GET |
